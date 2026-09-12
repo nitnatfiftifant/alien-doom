@@ -1,0 +1,87 @@
+[gd_scene load_steps=20 format=3]
+
+[ext_resource type="Script" path="res://gameplay/humans/human_controller.gd" id="1"]
+[ext_resource type="Script" path="res://gameplay/humans/components/stress_component.gd" id="2"]
+[ext_resource type="Script" path="res://gameplay/humans/components/perception_component.gd" id="3"]
+[ext_resource type="Script" path="res://gameplay/humans/components/human_state_machine.gd" id="4"]
+[ext_resource type="Script" path="res://gameplay/humans/components/states/calm_state.gd" id="5"]
+[ext_resource type="Script" path="res://gameplay/humans/components/states/cautious_state.gd" id="6"]
+[ext_resource type="Script" path="res://gameplay/humans/components/states/post_alert_state.gd" id="7"]
+[ext_resource type="Script" path="res://gameplay/humans/components/states/alert_state.gd" id="8"]
+[ext_resource type="Script" path="res://gameplay/world/health_component.gd" id="9"]
+[ext_resource type="Script" path="res://gameplay/humans/components/ranged_combat_component.gd" id="10"]
+[ext_resource type="Resource" path="res://gameplay/humans/resources/default_human_vitality.tres" id="11"]
+[ext_resource type="PackedScene" path="res://gameplay/humans/assets/ual1_human.glb" id="12"]
+[ext_resource type="Script" path="res://gameplay/humans/components/human_animation_component.gd" id="13"]
+[ext_resource type="PackedScene" path="res://gameplay/humans/assets/guard_pistol.glb" id="14"]
+[ext_resource type="Script" path="res://gameplay/humans/components/human_weapon_component.gd" id="15"]
+[sub_resource type="CapsuleShape3D" id="HumanShape"]
+radius = 0.5
+height = 2.25
+[sub_resource type="CapsuleMesh" id="HumanMesh"]
+radius = 0.5
+height = 2.25
+[sub_resource type="StandardMaterial3D" id="HumanMaterial"]
+albedo_color = Color(0.95, 0.48, 0.12, 1)
+[sub_resource type="SphereMesh" id="IndicatorMesh"]
+radius = 0.14
+height = 0.28
+
+[node name="Human" type="CharacterBody3D"]
+collision_layer = 4
+collision_mask = 19
+script = ExtResource("1")
+vitality_config = ExtResource("11")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 1.125, 0)
+shape = SubResource("HumanShape")
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+position = Vector3(0, 1.125, 0)
+visible = false
+mesh = SubResource("HumanMesh")
+material_override = SubResource("HumanMaterial")
+[node name="VisualRoot" type="Node3D" parent="."]
+rotation = Vector3(0, 3.1415927, 0)
+[node name="AnimatedModel" parent="VisualRoot" instance=ExtResource("12")]
+[node name="StateIndicator" type="MeshInstance3D" parent="."]
+position = Vector3(0, 2.55, 0)
+mesh = SubResource("IndicatorMesh")
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+path_height_offset = 1.0
+[node name="StressComponent" type="Node" parent="."]
+script = ExtResource("2")
+[node name="PerceptionComponent" type="Node3D" parent="." node_paths=PackedStringArray("owner_body")]
+position = Vector3(0, 1.65, 0)
+script = ExtResource("3")
+owner_body = NodePath("..")
+[node name="HealthComponent" type="Node" parent="."]
+script = ExtResource("9")
+[node name="RangedCombatComponent" type="Node" parent="." node_paths=PackedStringArray("actor", "muzzle")]
+script = ExtResource("10")
+actor = NodePath("..")
+muzzle = NodePath("../PerceptionComponent")
+[node name="HumanAnimationComponent" type="Node" parent="." node_paths=PackedStringArray("actor", "visual_root", "combat")]
+script = ExtResource("13")
+actor = NodePath("..")
+visual_root = NodePath("../VisualRoot")
+combat = NodePath("../RangedCombatComponent")
+[node name="HumanWeaponComponent" type="Node" parent="." node_paths=PackedStringArray("actor", "visual_root")]
+script = ExtResource("15")
+actor = NodePath("..")
+visual_root = NodePath("../VisualRoot")
+pistol_scene = ExtResource("14")
+[node name="HumanStateMachine" type="Node" parent="." node_paths=PackedStringArray("actor")]
+script = ExtResource("4")
+actor = NodePath("..")
+[node name="Calm" type="Node" parent="HumanStateMachine"]
+script = ExtResource("5")
+state_id = 0
+[node name="Cautious" type="Node" parent="HumanStateMachine"]
+script = ExtResource("6")
+state_id = 1
+[node name="PostAlert" type="Node" parent="HumanStateMachine"]
+script = ExtResource("7")
+state_id = 2
+[node name="Alert" type="Node" parent="HumanStateMachine"]
+script = ExtResource("8")
+state_id = 3

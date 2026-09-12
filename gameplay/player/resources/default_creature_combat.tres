@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CreatureCombatConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://gameplay/player/resources/creature_combat_config.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bite_damage = 50.0
+bite_range = 1.7
+back_bite_multiplier = 1.5
+back_bite_dot_threshold = -0.35
+acid_damage = 35.0
+acid_range = 12.0
+acid_cooldown = 8.0

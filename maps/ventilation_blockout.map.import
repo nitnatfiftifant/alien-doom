@@ -1,0 +1,14 @@
+[remap]
+
+importer="func_godot.map"
+type="QuakeMapFile"
+uid="uid://dkb5pi2cnpoi3"
+path="res://.godot/imported/ventilation_blockout.map-bbbd66eb5e79bfa03352f472c8a5b4a7.tres"
+
+[deps]
+
+source_file="res://maps/ventilation_blockout.map"
+dest_files=["res://.godot/imported/ventilation_blockout.map-bbbd66eb5e79bfa03352f472c8a5b4a7.tres"]
+
+[params]
+

@@ -1,0 +1,8 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://textures/BuildingTextures/BRICKSTOPLEFT.png" id="1_kj7rr"]
+
+[resource]
+albedo_texture = ExtResource("1_kj7rr")
+metallic_specular = 0.0
+texture_filter = 2

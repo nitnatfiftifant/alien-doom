@@ -1,0 +1,142 @@
+[gd_scene format=3 uid="uid://cx2wcytdi6sdi"]
+
+[ext_resource type="Script" uid="uid://wkkc031ykebx" path="res://gameplay/player/creature_controller.gd" id="1"]
+[ext_resource type="Script" uid="uid://b14m8v5k1kr8r" path="res://gameplay/player/components/surface_motor.gd" id="2"]
+[ext_resource type="Script" uid="uid://clrvcn3kly7ft" path="res://gameplay/player/components/creature_abilities.gd" id="3"]
+[ext_resource type="Script" uid="uid://bt81k2nsn2lgk" path="res://gameplay/player/components/carry_component.gd" id="4"]
+[ext_resource type="Script" uid="uid://d0dry160wca6g" path="res://gameplay/world/health_component.gd" id="5"]
+[ext_resource type="Script" uid="uid://b67el8sek60up" path="res://ui/creature_hud.gd" id="6"]
+[ext_resource type="PackedScene" path="res://gameplay/player/acid_projectile.tscn" id="7"]
+[ext_resource type="Texture2D" uid="uid://jd7gr181bgcr" path="res://assets/sprites/test_anim_bite_tileset.png" id="8"]
+[ext_resource type="Script" uid="uid://blf05fytchia7" path="res://gameplay/player/components/bite_overlay.gd" id="9"]
+[ext_resource type="Resource" path="res://gameplay/player/resources/default_creature_combat.tres" id="10"]
+
+[sub_resource type="BoxShape3D" id="CreatureShape"]
+size = Vector3(0.75, 0.625, 0.75)
+
+[sub_resource type="StandardMaterial3D" id="CreatureMaterial"]
+albedo_color = Color(0.12, 0.55, 0.18, 1)
+
+[sub_resource type="BoxMesh" id="CreatureMesh"]
+size = Vector3(0.75, 0.625, 1.1)
+
+[sub_resource type="AtlasTexture" id="BiteFrame1"]
+atlas = ExtResource("8")
+region = Rect2(128, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="BiteFrame2"]
+atlas = ExtResource("8")
+region = Rect2(256, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="BiteFrame0"]
+atlas = ExtResource("8")
+region = Rect2(0, 0, 128, 128)
+
+[sub_resource type="SpriteFrames" id="BiteAnimations"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("BiteFrame1")
+}, {
+"duration": 1.0,
+"texture": SubResource("BiteFrame2")
+}, {
+"duration": 1.0,
+"texture": SubResource("BiteFrame0")
+}],
+"loop": 0,
+"name": &"bite",
+"speed": 14.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("BiteFrame0")
+}],
+"loop": 1,
+"name": &"idle",
+"speed": 1.0
+}]
+
+[node name="Creature" type="CharacterBody3D" unique_id=1781975864]
+collision_layer = 2
+collision_mask = 25
+script = ExtResource("1")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=952059383]
+shape = SubResource("CreatureShape")
+
+[node name="Visual" type="Node3D" parent="." unique_id=1209525709]
+
+[node name="BodyMesh" type="MeshInstance3D" parent="Visual" unique_id=1516471229]
+visible = false
+material_override = SubResource("CreatureMaterial")
+mesh = SubResource("CreatureMesh")
+
+[node name="CameraPivot" type="Node3D" parent="." unique_id=1392437681]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, 0)
+
+[node name="Camera3D" type="Camera3D" parent="CameraPivot" unique_id=1898879243]
+current = true
+
+[node name="CarryHolder" type="Node3D" parent="CameraPivot/Camera3D" unique_id=413684974]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.45, -1.1)
+
+[node name="AdhesionProbe" type="RayCast3D" parent="." unique_id=2061955812]
+target_position = Vector3(0, -0.9, 0)
+
+[node name="SurfaceMotor" type="Node" parent="." unique_id=874027800 node_paths=PackedStringArray("body", "camera_pivot", "adhesion_probe")]
+script = ExtResource("2")
+body = NodePath("..")
+camera_pivot = NodePath("../CameraPivot")
+adhesion_probe = NodePath("../AdhesionProbe")
+
+[node name="CreatureAbilities" type="Node" parent="." unique_id=1227122409 node_paths=PackedStringArray("camera", "bite_visual")]
+script = ExtResource("3")
+camera = NodePath("../CameraPivot/Camera3D")
+bite_visual = NodePath("../BiteOverlay/BiteSprite")
+acid_projectile_scene = ExtResource("7")
+combat_config = ExtResource("10")
+
+[node name="CarryComponent" type="Node" parent="." unique_id=1401053987 node_paths=PackedStringArray("camera", "holder")]
+script = ExtResource("4")
+camera = NodePath("../CameraPivot/Camera3D")
+holder = NodePath("../CameraPivot/Camera3D/CarryHolder")
+
+[node name="HealthComponent" type="Node" parent="." unique_id=895716826]
+script = ExtResource("5")
+
+[node name="BiteOverlay" type="CanvasLayer" parent="." unique_id=1084224631]
+layer = 5
+
+[node name="BiteSprite" type="AnimatedSprite2D" parent="BiteOverlay" unique_id=1054604650]
+texture_filter = 1
+sprite_frames = SubResource("BiteAnimations")
+animation = &"idle"
+autoplay = "idle"
+script = ExtResource("9")
+
+[node name="CreatureHud" type="CanvasLayer" parent="." unique_id=2091200054 node_paths=PackedStringArray("health", "abilities")]
+layer = 10
+script = ExtResource("6")
+health = NodePath("../HealthComponent")
+abilities = NodePath("../CreatureAbilities")
+
+[node name="Margin" type="MarginContainer" parent="CreatureHud" unique_id=520686212]
+offset_left = 18.0
+offset_top = 18.0
+
+[node name="VBox" type="VBoxContainer" parent="CreatureHud/Margin" unique_id=1648393513]
+layout_mode = 2
+
+[node name="Health" type="Label" parent="CreatureHud/Margin/VBox" unique_id=612139856]
+layout_mode = 2
+text = "ЖИЗНЬ: 100 / 100"
+
+[node name="Acid" type="Label" parent="CreatureHud/Margin/VBox" unique_id=1316447158]
+layout_mode = 2
+text = "КИСЛОТА: ГОТОВА"
+
+[node name="Help" type="Label" parent="CreatureHud/Margin/VBox" unique_id=505790303]
+layout_mode = 2
+text = "WASD бег | Shift скрытность | Space отцепиться
+ЛКМ укус | ПКМ кислота | E взаимодействие/труп"

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="FuncGodotMapSettings" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://addons/func_godot/src/map/func_godot_map_settings.gd" id="1"]
+[ext_resource type="Material" path="res://addons/func_godot/textures/default_material.tres" id="2"]
+[ext_resource type="Resource" path="res://fgd/fgd_main.tres" id="3"]
+
+[resource]
+script = ExtResource("1")
+entity_fgd = ExtResource("3")
+inverse_scale_factor = 32.0
+uv_unwrap_texel_size = 1.0
+clip_texture = "special/clip"
+skip_texture = "special/skip"
+origin_texture = "special/origin"
+base_texture_dir = "res://textures"
+base_material_dir = "res://materials"
+default_material = ExtResource("2")
+use_groups_hierarchy = true
+save_generated_materials = true

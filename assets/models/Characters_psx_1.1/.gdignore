@@ -1,0 +1,2 @@
+# Raw source library. Production-ready selected/retargeted characters are copied
+# into res://gameplay/humans/assets instead of importing every FBX variant.

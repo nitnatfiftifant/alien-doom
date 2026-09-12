@@ -1,0 +1,63 @@
+class_name HumanAnimationComponent
+extends Node
+
+@export var actor: HumanController
+@export var visual_root: Node3D
+@export var combat: RangedCombatComponent
+@export var movement_threshold := 0.15
+
+var animation_player: AnimationPlayer
+var current_animation := &""
+var death_started := false
+var action_lock := 0.0
+
+func _ready() -> void:
+	animation_player = visual_root.find_child("AnimationPlayer", true, false) as AnimationPlayer
+	if animation_player == null:
+		push_warning("Human animation model has no AnimationPlayer")
+		return
+	_set_loop(&"Idle", true)
+	_set_loop(&"Walk", true)
+	_set_loop(&"Jog_Fwd", true)
+	_set_loop(&"Sprint", true)
+	if combat != null:
+		combat.shot_fired.connect(_on_shot_fired)
+	_play(&"Idle")
+
+func _process(delta: float) -> void:
+	if animation_player == null:
+		return
+	if actor.is_in_group("corpses"):
+		if not death_started:
+			death_started = true
+			_play(&"Death01")
+		return
+	action_lock = maxf(0.0, action_lock - delta)
+	if action_lock > 0.0:
+		return
+	var horizontal_speed := Vector2(actor.velocity.x, actor.velocity.z).length()
+	if horizontal_speed <= movement_threshold:
+		_play(&"Pistol_Idle" if actor.role == "Guard" else &"Idle")
+	elif actor.stress.state == StressComponent.State.ALERT:
+		_play(&"Sprint" if actor.role == "Worker" else &"Jog_Fwd")
+	else:
+		_play(&"Walk")
+
+func _on_shot_fired() -> void:
+	if actor.role != "Guard":
+		return
+	action_lock = 0.35
+	current_animation = &""
+	_play(&"Pistol_Shoot")
+
+func _play(animation_name: StringName) -> void:
+	if current_animation == animation_name or not animation_player.has_animation(animation_name):
+		return
+	current_animation = animation_name
+	animation_player.play(animation_name, 0.15)
+
+func _set_loop(animation_name: StringName, enabled: bool) -> void:
+	if not animation_player.has_animation(animation_name):
+		return
+	var animation := animation_player.get_animation(animation_name)
+	animation.loop_mode = Animation.LOOP_LINEAR if enabled else Animation.LOOP_NONE

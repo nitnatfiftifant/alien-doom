@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="FuncGodotFGDPointClass" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://addons/func_godot/src/fgd/func_godot_fgd_point_class.gd" id="1"]
+[ext_resource type="PackedScene" path="res://gameplay/humans/human.tscn" id="2"]
+[ext_resource type="Resource" path="res://fgd/base/targetname.tres" id="3"]
+
+[resource]
+script = ExtResource("1")
+scene_file = ExtResource("2")
+classname = "info_human_spawn"
+description = "Worker or guard spawn marker."
+base_classes = Array[Resource]([ExtResource("3")])
+class_properties = Dictionary[String, Variant]({"angles": Vector3(0, 0, 0), "patrol_id": "", "role": "Worker"})
+class_property_descriptions = Dictionary[String, Variant]({"patrol_id": "Patrol route identifier.", "role": "Worker, Guard, or Engineer.", "targetname": "Stable designer identifier."})
+meta_properties = Dictionary[String, Variant]({"color": Color(1, 0.55, 0.15, 1), "size": AABB(-16, -16, -32, 32, 32, 64)})

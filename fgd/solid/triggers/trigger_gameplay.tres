@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="FuncGodotFGDSolidClass" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://addons/func_godot/src/fgd/func_godot_fgd_solid_class.gd" id="1"]
+[ext_resource type="Script" path="res://entities/triggers/gameplay_trigger.gd" id="2"]
+[ext_resource type="Resource" path="res://fgd/base/targetname.tres" id="3"]
+
+[resource]
+script = ExtResource("1")
+origin_type = 4
+build_visuals = false
+use_in_baked_light = false
+shadow_casting_setting = 0
+render_layers = 0
+collision_layer = 16
+collision_mask = 14
+script_class = ExtResource("2")
+classname = "trigger_gameplay"
+description = "Invisible gameplay event volume. Texture with special/trigger."
+base_classes = Array[Resource]([ExtResource("3")])
+class_properties = Dictionary[String, Variant]({"event_id": "", "once": true})
+class_property_descriptions = Dictionary[String, Variant]({"event_id": "Event identifier consumed by game logic.", "once": "Disable after the first activation.", "targetname": "Stable designer identifier."})
+meta_properties = Dictionary[String, Variant]({"color": Color(0.75, 0.1, 0.8, 1)})
+node_class = "Area3D"
