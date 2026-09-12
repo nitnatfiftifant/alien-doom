@@ -19,5 +19,54 @@ mono_crash.*.json
 
 assets/models/other_assets/
 
+# ==========================================
+# TrenchBroom & FuncGodot Level Editor ignores
+# ==========================================
+# TrenchBroom autosaves and backups
+*.bak
+*.map.bak
+autosave/
+**/autosave/*
+!**/autosave/.gdignore
+*.autosave
+*.autosave.map
+
+# Leak inspection, pointfiles and portal files
+*.pts
+*.lin
+*.prt
+
+# Compiler and temporary map artifacts
+*.bsp
+*.ent
+*.wad
+*.tmp
+*.map.tmp
+
+# TrenchBroom and compiler logs
+*.log
+TrenchBroom.log
+
 # Developer-local FuncGodot editor paths and overrides
 addons/func_godot/func_godot_local_config.tres
+
+# ==========================================
+# IDE & Operating System ignores
+# ==========================================
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosv
+*.sln.docstates
+*.swp
+*~
+
+# Windows
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+
+# macOS
+.DS_Store
+._*

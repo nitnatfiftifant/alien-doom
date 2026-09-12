@@ -33,5 +33,5 @@ Run `tools/validate_integration.ps1`. It builds the `.map` in Godot 4.8.dev5 and
 Run the following after a mapping pass when generated geometry should be committed and immediately visible in the Godot editor:
 
 ```powershell
-& 'C:\Users\nit\Downloads\Godot_v4.8-dev5_win64.exe\Godot_v4.8-dev5_win64_console.exe' --headless --path . --script res://tools/bake_map_scene.gd
+& 'D:\BeProgrammer\Godot_Engine_Experimental\Godot_v4.8-dev5_win64.exe' --headless --path . --script res://tools/bake_map_scene.gd
 ```
