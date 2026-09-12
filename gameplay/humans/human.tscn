@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=27 format=3]
 
 [ext_resource type="Script" path="res://gameplay/humans/human_controller.gd" id="1"]
 [ext_resource type="Script" path="res://gameplay/humans/components/stress_component.gd" id="2"]
@@ -15,6 +15,13 @@
 [ext_resource type="Script" path="res://gameplay/humans/components/human_animation_component.gd" id="13"]
 [ext_resource type="PackedScene" path="res://gameplay/humans/assets/guard_pistol.glb" id="14"]
 [ext_resource type="Script" path="res://gameplay/humans/components/human_weapon_component.gd" id="15"]
+[ext_resource type="Script" path="res://gameplay/humans/components/substates/idle_behavior.gd" id="16"]
+[ext_resource type="Script" path="res://gameplay/humans/components/substates/patrol_behavior.gd" id="17"]
+[ext_resource type="Script" path="res://gameplay/humans/components/substates/investigate_behavior.gd" id="18"]
+[ext_resource type="Script" path="res://gameplay/humans/components/substates/search_behavior.gd" id="19"]
+[ext_resource type="Script" path="res://gameplay/humans/components/substates/flee_behavior.gd" id="20"]
+[ext_resource type="Script" path="res://gameplay/humans/components/substates/combat_behavior.gd" id="21"]
+[ext_resource type="Script" path="res://gameplay/humans/components/human_ragdoll_component.gd" id="22"]
 [sub_resource type="CapsuleShape3D" id="HumanShape"]
 radius = 0.5
 height = 2.25
@@ -70,18 +77,35 @@ script = ExtResource("15")
 actor = NodePath("..")
 visual_root = NodePath("../VisualRoot")
 pistol_scene = ExtResource("14")
+[node name="HumanRagdollComponent" type="Node" parent="." node_paths=PackedStringArray("visual_root")]
+script = ExtResource("22")
+visual_root = NodePath("../VisualRoot")
 [node name="HumanStateMachine" type="Node" parent="." node_paths=PackedStringArray("actor")]
 script = ExtResource("4")
 actor = NodePath("..")
 [node name="Calm" type="Node" parent="HumanStateMachine"]
 script = ExtResource("5")
 state_id = 0
+[node name="Idle" type="Node" parent="HumanStateMachine/Calm"]
+script = ExtResource("16")
+[node name="Patrol" type="Node" parent="HumanStateMachine/Calm"]
+script = ExtResource("17")
 [node name="Cautious" type="Node" parent="HumanStateMachine"]
 script = ExtResource("6")
 state_id = 1
+[node name="Investigate" type="Node" parent="HumanStateMachine/Cautious"]
+script = ExtResource("18")
 [node name="PostAlert" type="Node" parent="HumanStateMachine"]
 script = ExtResource("7")
 state_id = 2
+[node name="Search" type="Node" parent="HumanStateMachine/PostAlert"]
+script = ExtResource("19")
+[node name="Flee" type="Node" parent="HumanStateMachine/PostAlert"]
+script = ExtResource("20")
 [node name="Alert" type="Node" parent="HumanStateMachine"]
 script = ExtResource("8")
 state_id = 3
+[node name="Flee" type="Node" parent="HumanStateMachine/Alert"]
+script = ExtResource("20")
+[node name="Combat" type="Node" parent="HumanStateMachine/Alert"]
+script = ExtResource("21")

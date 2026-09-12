@@ -10,7 +10,10 @@ extends Node
 @export var gravity_strength := 22.0
 @export var orientation_speed := 10.0
 @export var air_orientation_speed := 8.0
-@export var jump_impulse := 21.0
+@export var jump_impulse := 13.0
+@export var jump_forward_impulse := 3.5
+@export var air_acceleration := 14.0
+@export var air_max_speed := 12.0
 @export var stick_velocity := 3.5
 @export var probe_length := 1.2
 
@@ -23,6 +26,7 @@ var attached := true
 var coyote_timer := 0.0
 var transition_cooldown := 0.0
 var jump_cooldown := 0.0
+var movement_multiplier := 1.0
 
 func reset_orientation(facing: Vector3 = Vector3.FORWARD) -> void:
 	surface_up = Vector3.UP
@@ -71,10 +75,10 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 
 	# 3. Handle Jump (Space)
 	if jump_pressed and (attached or coyote_timer > 0.0) and jump_cooldown <= 0.0:
-		var jump_direction := surface_up
-		if not desired.is_zero_approx():
-			jump_direction = (surface_up * 0.85 + desired * 0.25).normalized()
-		body.velocity = body.velocity.slide(surface_up) + jump_direction * jump_impulse
+		var launch_forward := desired if not desired.is_zero_approx() else surface_forward
+		launch_forward = launch_forward.slide(surface_up).normalized()
+		var inherited_tangent := body.velocity.slide(surface_up)
+		body.velocity = inherited_tangent + launch_forward * jump_forward_impulse + surface_up * jump_impulse
 		attached = false
 		is_airborne = true
 		coyote_timer = 0.0
@@ -93,9 +97,10 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 			elif contact.get("transitioned", false):
 				_apply_surface_transition(new_normal, false)
 		else:
-			if coyote_timer <= 0.0:
-				attached = false
-				is_airborne = true
+			# Never keep applying adhesion toward a surface that disappeared at
+			# a convex edge. Coyote time remains available for jumping only.
+			attached = false
+			is_airborne = true
 	elif is_airborne:
 		attached = false
 
@@ -103,7 +108,7 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 	_update_orientation(delta)
 
 	# 6. Velocity computation & motion
-	var speed := sneak_speed if sneaking else run_speed
+	var speed := (sneak_speed if sneaking else run_speed) * movement_multiplier
 	if attached:
 		var tangent_velocity := body.velocity.slide(surface_up)
 		tangent_velocity = tangent_velocity.move_toward(desired * speed, acceleration * delta)
@@ -114,8 +119,13 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 	else:
 		# Airborne: preserve existing velocity (including jump impulse!), apply gravity and air steering
 		var air_horiz := body.velocity.slide(Vector3.UP)
-		if not desired.is_zero_approx():
-			air_horiz = air_horiz.move_toward(desired.slide(Vector3.UP).normalized() * speed, (acceleration * 0.25) * delta)
+		var air_forward := (-camera_pivot.global_basis.z).slide(Vector3.UP).normalized()
+		if air_forward.is_zero_approx():
+			air_forward = surface_forward.slide(Vector3.UP).normalized()
+		var air_right := air_forward.cross(Vector3.UP).normalized()
+		var air_desired := (air_right * input_vector.x + air_forward * input_vector.y).normalized()
+		if not air_desired.is_zero_approx():
+			air_horiz = air_horiz.move_toward(air_desired * air_max_speed, air_acceleration * delta)
 		var air_vert := body.velocity.project(Vector3.UP) + Vector3.DOWN * gravity_strength * delta
 		body.velocity = air_horiz + air_vert
 		body.up_direction = Vector3.UP
@@ -155,17 +165,20 @@ func _find_surface(desired: Vector3) -> Dictionary:
 	# 3. Outer (convex) corner wrap probe:
 	# Starts ahead of the ledge and casts back into the wrap-around face
 	if not desired.is_zero_approx():
-		var wrap_start := origin + desired * 0.45 - surface_up * 0.45
-		var wrap_target := wrap_start - desired * 0.95
-		var wrap_query := PhysicsRayQueryParameters3D.create(wrap_start, wrap_target, 1)
-		wrap_query.exclude = [body]
-		var wrap_hit := space.intersect_ray(wrap_query)
-		if not wrap_hit.is_empty():
-			var hit_norm: Vector3 = wrap_hit.normal.normalized()
-			if hit_norm.dot(surface_up) < 0.7:
-				wrap_hit["transitioned"] = true
-				wrap_hit["is_wrap"] = true
-				return wrap_hit
+		var lateral := desired.cross(surface_up).normalized()
+		var lateral_offsets: Array[float] = [0.0, -0.22, 0.22]
+		for lateral_offset: float in lateral_offsets:
+			var wrap_start: Vector3 = origin + desired * 0.75 - surface_up * 0.7 + lateral * lateral_offset
+			var wrap_target: Vector3 = wrap_start - desired * 1.35
+			var wrap_query := PhysicsRayQueryParameters3D.create(wrap_start, wrap_target, 1)
+			wrap_query.exclude = [body]
+			var wrap_hit := space.intersect_ray(wrap_query)
+			if not wrap_hit.is_empty():
+				var hit_norm: Vector3 = wrap_hit.normal.normalized()
+				if hit_norm.dot(surface_up) < 0.85:
+					wrap_hit["transitioned"] = true
+					wrap_hit["is_wrap"] = true
+					return wrap_hit
 
 	return {}
 

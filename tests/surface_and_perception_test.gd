@@ -27,8 +27,10 @@ func run() -> void:
 	assert(absf(creature.motor.surface_up.dot(Vector3.UP)) < 0.35, "Creature did not transition from floor to vertical wall")
 	assert(creature.global_position.y > 0.8, "Creature attached to wall but did not climb")
 	var wall_normal := creature.motor.surface_up
+	var wall_forward := creature.motor.surface_forward
 	creature.motor.physics_step(Vector2.ZERO, false, true, 1.0 / 60.0)
-	assert(creature.velocity.dot(wall_normal) > 18.0, "Wall detach impulse is too weak or points in world-up direction")
+	assert(creature.velocity.dot(wall_normal) > 12.0, "Wall jump lacks a sharp outward launch")
+	assert(creature.velocity.dot(wall_forward) >= 3.0, "Directional jump momentum is missing")
 
 	# Test Floor Detach (Key C)
 	creature.position = Vector3(0, 2.0, -1.875)
@@ -58,7 +60,7 @@ func run() -> void:
 	creature.motor.surface_up = Vector3.DOWN
 	creature.motor.attached = false
 	creature.motor.is_airborne = true
-	for step in 40:
+	for step in 70:
 		creature.motor.physics_step(Vector2.ZERO, false, false, 1.0 / 60.0)
 		await physics_frame
 	assert(creature.motor.surface_up.dot(Vector3.UP) > 0.9, "Airborne creature did not reorient right-side-up before or upon landing")

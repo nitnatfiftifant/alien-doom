@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="FuncGodotFGDPointClass" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://addons/func_godot/src/fgd/func_godot_fgd_point_class.gd" id="1"]
+[ext_resource type="PackedScene" path="res://gameplay/world/func_spot_light.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+scene_file = ExtResource("2")
+classname = "light_spot"
+description = "Directional spotlight; rotate the entity to aim it."
+class_properties = Dictionary[String, Variant]({"_color": Color(0.75, 0.85, 1, 1), "angles": Vector3(0, 0, 0), "cone_angle": 45.0, "energy": 3.0, "range": 12.0, "shadow": true})
+class_property_descriptions = Dictionary[String, Variant]({"_color": "Light color.", "cone_angle": "Outer cone angle in degrees.", "energy": "Godot light energy.", "range": "Range in metres.", "shadow": "Enable shadows."})
+meta_properties = Dictionary[String, Variant]({"color": Color(0.45, 0.7, 1, 1), "size": AABB(-8, -8, -8, 16, 16, 16)})

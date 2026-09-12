@@ -12,6 +12,7 @@ extends CharacterBody3D
 @onready var state_machine: HumanStateMachine = $HumanStateMachine
 @onready var combat: RangedCombatComponent = $RangedCombatComponent
 @onready var state_indicator: MeshInstance3D = $StateIndicator
+@onready var ragdoll: HumanRagdollComponent = $HumanRagdollComponent
 var last_stimulus_position := Vector3.ZERO
 
 func _func_godot_apply_properties(properties: Dictionary) -> void:
@@ -104,5 +105,10 @@ func _on_died(_instigator: Node) -> void:
 	(get_node("/root/NOISE") as NoiseBus).emit_noise(global_position, 1.0, self)
 	set_physics_process(false)
 	remove_from_group("humans")
+	add_to_group("dead_humans")
 	add_to_group("corpses")
-	collision_layer = 8
+	collision_layer = 0
+	collision_mask = 0
+	state_indicator.visible = false
+	$HumanAnimationComponent.set_process(false)
+	ragdoll.activate(velocity)

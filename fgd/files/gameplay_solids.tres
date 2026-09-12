@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="FuncGodotFGDFile" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="FuncGodotFGDFile" format=3 uid="uid://ci4ghdqjdkkhl"]
 
-[ext_resource type="Script" path="res://addons/func_godot/src/fgd/func_godot_fgd_file.gd" id="1"]
+[ext_resource type="Script" uid="uid://drlmgulwbjwqu" path="res://addons/func_godot/src/fgd/func_godot_fgd_file.gd" id="1"]
 [ext_resource type="Resource" path="res://fgd/solid/triggers/trigger_gameplay.tres" id="2"]
 [ext_resource type="Resource" path="res://fgd/solid/func_door.tres" id="3"]
 [ext_resource type="Resource" path="res://fgd/solid/func_acid_grate.tres" id="4"]

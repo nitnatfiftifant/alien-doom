@@ -14,7 +14,7 @@ func run() -> void:
 	var humans := get_nodes_in_group("humans")
 	var nest := get_first_node_in_group("creature_nest") as CreatureNest
 	assert(creature != null, "Creature was not spawned from info_alien_start")
-	assert(creature.run_speed == 8.0 and creature.jump_impulse == 21.0, "CreatureController movement export defaults missing")
+	assert(creature.run_speed == 8.0 and creature.jump_impulse == 13.0 and creature.jump_forward_impulse == 3.5 and creature.gravity_strength == 32.0, "CreatureController movement export defaults missing")
 	creature.run_speed = 11.0
 	assert(creature.motor.run_speed == 11.0, "Changing CreatureController exported run_speed did not sync to motor")
 	creature.run_speed = 8.0
@@ -44,6 +44,7 @@ func run() -> void:
 	assert(animator.animation_player.has_animation(&"Idle") and animator.animation_player.has_animation(&"Walk") and animator.animation_player.has_animation(&"Death01"), "Required human animation set is incomplete")
 	human.stress.add_stress(80.0)
 	assert(human.state_machine.current.state_id == StressComponent.State.ALERT, "FSM did not transition to Alert node")
+	assert(human.state_machine.current.current_substate != null, "HFSM container did not activate a behavioral substate")
 	human.global_basis = Basis.IDENTITY
 	creature.global_position = human.global_position + Vector3.BACK
 	var back_damage := creature.abilities.calculate_bite_damage(human, creature)
@@ -53,7 +54,12 @@ func run() -> void:
 	human.health.apply_damage(front_damage, creature)
 	assert(human.health.current_health == 50.0, "A frontal bite must remove half of default human health")
 	human.health.apply_damage(front_damage, creature)
-	assert(human.is_in_group("corpses"), "Dead human did not become a corpse")
+	await physics_frame
+	var corpse := get_first_node_in_group("corpses") as HumanController
+	assert(corpse == human and human.ragdoll.bodies.size() >= 10, "Dead human did not activate its skinned-model ragdoll")
+	assert(human.get_node("VisualRoot").visible, "Death replaced or hid the original skinned model")
+	for ragdoll_body in human.ragdoll.bodies:
+		assert(ragdoll_body.collision_mask == 1, "Ragdoll is not configured to collide with level geometry")
 	creature.global_basis = Basis(Vector3.RIGHT, PI * 0.5)
 	creature.motor.surface_up = Vector3.FORWARD
 	creature.camera_pivot.rotation.x = 1.0

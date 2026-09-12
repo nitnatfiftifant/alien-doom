@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://gameplay/world/func_omni_light.gd" id="1"]
+
+[node name="FuncOmniLight" type="OmniLight3D"]
+omni_range = 8.0
+shadow_enabled = true
+script = ExtResource("1")

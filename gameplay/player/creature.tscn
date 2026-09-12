@@ -10,6 +10,7 @@
 [ext_resource type="Texture2D" uid="uid://jd7gr181bgcr" path="res://assets/sprites/test_anim_bite_tileset.png" id="8"]
 [ext_resource type="Script" uid="uid://blf05fytchia7" path="res://gameplay/player/components/bite_overlay.gd" id="9"]
 [ext_resource type="Resource" path="res://gameplay/player/resources/default_creature_combat.tres" id="10"]
+[ext_resource type="Script" uid="uid://b6hp4uuv0blq3" path="res://gameplay/player/components/ragdoll_pusher_component.gd" id="11"]
 
 [sub_resource type="BoxShape3D" id="CreatureShape"]
 size = Vector3(0.75, 0.625, 0.75)
@@ -59,8 +60,12 @@ animations = [{
 
 [node name="Creature" type="CharacterBody3D" unique_id=1781975864]
 collision_layer = 2
-collision_mask = 25
+collision_mask = 21
 script = ExtResource("1")
+jump_impulse = 13.0
+jump_forward_impulse = 3.5
+gravity_strength = 32.0
+air_orientation_speed = 20.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=952059383]
 shape = SubResource("CreatureShape")
@@ -102,6 +107,10 @@ script = ExtResource("4")
 camera = NodePath("../CameraPivot/Camera3D")
 holder = NodePath("../CameraPivot/Camera3D/CarryHolder")
 
+[node name="RagdollPusherComponent" type="Node" parent="." unique_id=1919405333 node_paths=PackedStringArray("actor")]
+script = ExtResource("11")
+actor = NodePath("..")
+
 [node name="HealthComponent" type="Node" parent="." unique_id=895716826]
 script = ExtResource("5")
 
@@ -138,5 +147,5 @@ text = "КИСЛОТА: ГОТОВА"
 
 [node name="Help" type="Label" parent="CreatureHud/Margin/VBox" unique_id=505790303]
 layout_mode = 2
-text = "WASD бег | Shift скрытность | Space отцепиться
+text = "WASD бег | Shift скрытность | Space прыжок | C на пол
 ЛКМ укус | ПКМ кислота | E взаимодействие/труп"

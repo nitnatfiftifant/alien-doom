@@ -39,5 +39,13 @@ func _init() -> void:
 			var error := DirAccess.copy_absolute(source, TARGET_DIRECTORIES[1].path_join(file_name))
 			if error != OK:
 				push_error("Failed to copy %s to bundled TrenchBroom: %s" % [file_name, error_string(error)])
+	for target_directory in TARGET_DIRECTORIES:
+		var model_directory := target_directory.path_join("models/editor")
+		DirAccess.make_dir_recursive_absolute(model_directory)
+		for model_name in ["alien_spawn.glb", "human_spawn.glb", "nest.glb"]:
+			var model_source := ProjectSettings.globalize_path("res://models/editor/" + model_name)
+			var error := DirAccess.copy_absolute(model_source, model_directory.path_join(model_name))
+			if error != OK:
+				push_error("Failed to export TrenchBroom model %s: %s" % [model_name, error_string(error)])
 	print("ALIEN_DOOM_TRENCHBROOM_EXPORT_OK")
 	quit(0)

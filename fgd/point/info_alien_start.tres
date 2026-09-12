@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="FuncGodotFGDPointClass" load_steps=4 format=3]
+[gd_resource type="Resource" script_class="FuncGodotFGDPointClass" format=3 uid="uid://cttfcy6y05evg"]
 
-[ext_resource type="Script" path="res://addons/func_godot/src/fgd/func_godot_fgd_point_class.gd" id="1"]
-[ext_resource type="PackedScene" path="res://gameplay/player/creature.tscn" id="2"]
-[ext_resource type="Resource" path="res://fgd/base/targetname.tres" id="3"]
+[ext_resource type="Script" uid="uid://cxsqwtsqd8w33" path="res://addons/func_godot/src/fgd/func_godot_fgd_point_class.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://cx2wcytdi6sdi" path="res://gameplay/player/creature.tscn" id="2"]
+[ext_resource type="Script" uid="uid://d1nwwgcrner8b" path="res://addons/func_godot/src/fgd/func_godot_fgd_point_class_display_descriptor.gd" id="2_okio0"]
+[ext_resource type="Resource" uid="uid://46g41551lweq" path="res://fgd/base/targetname.tres" id="3"]
 
 [resource]
 script = ExtResource("1")
@@ -10,6 +11,16 @@ scene_file = ExtResource("2")
 classname = "info_alien_start"
 description = "Monster player start. Keep enough clearance for crawling movement."
 base_classes = Array[Resource]([ExtResource("3")])
-class_properties = Dictionary[String, Variant]({"angles": Vector3(0, 0, 0), "ceiling_spawn": false})
-class_property_descriptions = Dictionary[String, Variant]({"ceiling_spawn": "Spawn attached to the ceiling.", "targetname": "Stable designer identifier."})
-meta_properties = Dictionary[String, Variant]({"color": Color(0.2, 1, 0.35, 1), "size": AABB(-16, -16, -16, 32, 32, 32)})
+class_properties = Dictionary[String, Variant]({
+"angles": Vector3(0, 0, 0),
+"ceiling_spawn": false
+})
+class_property_descriptions = Dictionary[String, Variant]({
+"ceiling_spawn": "Spawn attached to the ceiling.",
+"targetname": "Stable designer identifier."
+})
+meta_properties = Dictionary[String, Variant]({
+"color": Color(0.2, 1, 0.35, 1),
+"model": "{\"path\": \"models/editor/alien_spawn.glb\", \"scale\": 32}",
+"size": AABB(-16, -16, -16, 32, 32, 32)
+})

@@ -1,7 +1,7 @@
 [gd_scene format=4 uid="uid://cy5ua3xk65q2k"]
 
 [ext_resource type="Script" uid="uid://cwu5cf7a0awcd" path="res://addons/func_godot/src/map/func_godot_map.gd" id="1"]
-[ext_resource type="Resource" path="res://maps/map_settings.tres" id="2"]
+[ext_resource type="Resource" uid="uid://dwkxy8f1us0nm" path="res://maps/map_settings.tres" id="2"]
 [ext_resource type="Script" uid="uid://ca3m6gwddhbu8" path="res://maps/map_runtime_loader.gd" id="3"]
 [ext_resource type="Material" path="res://materials/Rocks/DIRT.tres" id="3_caiph"]
 [ext_resource type="Material" path="res://materials/Bricks/BIGBRICKS.tres" id="4_km2ob"]

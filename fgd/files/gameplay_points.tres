@@ -1,12 +1,14 @@
-[gd_resource type="Resource" script_class="FuncGodotFGDFile" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="FuncGodotFGDFile" format=3 uid="uid://bxnp6cv53ltxb"]
 
-[ext_resource type="Script" path="res://addons/func_godot/src/fgd/func_godot_fgd_file.gd" id="1"]
-[ext_resource type="Resource" path="res://fgd/point/info_alien_start.tres" id="2"]
-[ext_resource type="Resource" path="res://fgd/point/info_human_spawn.tres" id="3"]
-[ext_resource type="Resource" path="res://fgd/point/info_nest.tres" id="4"]
-[ext_resource type="Resource" path="res://fgd/base/targetname.tres" id="5"]
+[ext_resource type="Script" uid="uid://drlmgulwbjwqu" path="res://addons/func_godot/src/fgd/func_godot_fgd_file.gd" id="1"]
+[ext_resource type="Resource" uid="uid://cttfcy6y05evg" path="res://fgd/point/info_alien_start.tres" id="2"]
+[ext_resource type="Resource" uid="uid://cnplu5j4tt66t" path="res://fgd/point/info_human_spawn.tres" id="3"]
+[ext_resource type="Resource" uid="uid://vy2bm1hfwrcn" path="res://fgd/point/info_nest.tres" id="4"]
+[ext_resource type="Resource" uid="uid://46g41551lweq" path="res://fgd/base/targetname.tres" id="5"]
+[ext_resource type="Resource" path="res://fgd/point/light.tres" id="6"]
+[ext_resource type="Resource" path="res://fgd/point/light_spot.tres" id="7"]
 
 [resource]
 script = ExtResource("1")
 fgd_name = "AlienDoomGameplayPoints"
-entity_definitions = Array[Resource]([ExtResource("5"), ExtResource("2"), ExtResource("3"), ExtResource("4")])
+entity_definitions = Array[Resource]([ExtResource("5"), ExtResource("2"), ExtResource("3"), ExtResource("4"), ExtResource("6"), ExtResource("7")])

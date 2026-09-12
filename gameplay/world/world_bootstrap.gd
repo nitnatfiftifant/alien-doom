@@ -17,9 +17,9 @@ func spawn_from_map() -> void:
 		if marker is AlienDoomPlayerStart:
 			spawn_transform = marker.global_transform
 			creature = creature_scene.instantiate() as CreatureController
+			creature.initial_transform = spawn_transform
 			world_root.add_child(creature)
 			creature.global_transform = spawn_transform
-			creature.health.died.connect(_on_creature_died)
 		elif marker is AlienDoomHumanSpawn:
 			var human := human_scene.instantiate() as HumanController
 			world_root.add_child(human)
@@ -30,8 +30,3 @@ func spawn_from_map() -> void:
 			var nest := nest_scene.instantiate() as CreatureNest
 			world_root.add_child(nest)
 			nest.global_transform = marker.global_transform
-
-func _on_creature_died(_instigator: Node) -> void:
-	creature.global_transform = spawn_transform
-	creature.velocity = Vector3.ZERO
-	creature.health.restore()

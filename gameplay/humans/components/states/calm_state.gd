@@ -1,6 +1,5 @@
 class_name HumanCalmState
 extends HumanState
 
-func physics_update(_delta: float) -> void:
-	actor.slow_down()
-
+func enter() -> void:
+	transition_substate(&"Patrol" if actor.role == "Guard" else &"Idle")
