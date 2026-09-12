@@ -14,8 +14,8 @@
 [ext_resource type="Resource" uid="uid://sab2e2rp6sve" path="res://gameplay/player/resources/default_corpse_drag.tres" id="12"]
 [ext_resource type="PackedScene" path="res://ui/pause_menu.tscn" id="13"]
 
-[sub_resource type="BoxShape3D" id="CreatureShape"]
-size = Vector3(0.75, 0.625, 0.75)
+[sub_resource type="SphereShape3D" id="CreatureShape"]
+radius = 0.35
 
 [sub_resource type="StandardMaterial3D" id="CreatureMaterial"]
 albedo_color = Color(0.12, 0.55, 0.18, 1)

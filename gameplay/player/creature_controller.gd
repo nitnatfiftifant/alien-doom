@@ -28,7 +28,7 @@ const MOVEMENT_PROPERTIES: Array[StringName] = [
 	set(value): acceleration = value; _sync_motor_prop(&"acceleration", value)
 @export var jump_impulse := 13.0:
 	set(value): jump_impulse = value; _sync_motor_prop(&"jump_impulse", value)
-@export var jump_forward_impulse := 3.5:
+@export var jump_forward_impulse := 0.0:
 	set(value): jump_forward_impulse = value; _sync_motor_prop(&"jump_forward_impulse", value)
 @export var air_acceleration := 14.0:
 	set(value): air_acceleration = value; _sync_motor_prop(&"air_acceleration", value)
@@ -36,13 +36,13 @@ const MOVEMENT_PROPERTIES: Array[StringName] = [
 	set(value): air_max_speed = value; _sync_motor_prop(&"air_max_speed", value)
 @export var gravity_strength := 22.0:
 	set(value): gravity_strength = value; _sync_motor_prop(&"gravity_strength", value)
-@export var orientation_speed := 10.0:
+@export var orientation_speed := 16.0:
 	set(value): orientation_speed = value; _sync_motor_prop(&"orientation_speed", value)
-@export var air_orientation_speed := 8.0:
+@export var air_orientation_speed := 14.0:
 	set(value): air_orientation_speed = value; _sync_motor_prop(&"air_orientation_speed", value)
 @export var stick_velocity := 3.5:
 	set(value): stick_velocity = value; _sync_motor_prop(&"stick_velocity", value)
-@export var probe_length := 1.2:
+@export var probe_length := 1.1:
 	set(value): probe_length = value; _sync_motor_prop(&"probe_length", value)
 @export_group("Abilities")
 @export var corpse_drag_config: Resource

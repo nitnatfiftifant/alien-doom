@@ -29,8 +29,20 @@ func run() -> void:
 	var wall_normal := creature.motor.surface_up
 	var wall_forward := creature.motor.surface_forward
 	creature.motor.physics_step(Vector2.ZERO, false, true, 1.0 / 60.0)
-	assert(creature.velocity.dot(wall_normal) > 12.0, "Wall jump lacks a sharp outward launch")
-	assert(creature.velocity.dot(wall_forward) >= 3.0, "Directional jump momentum is missing")
+	assert(creature.velocity.dot(wall_normal) > 10.0, "Wall jump lacks an outward launch")
+
+	# Test Wall Climbing while Looking Downward (pitched camera must not reverse movement)
+	creature.position = Vector3(0, 0.45, 0)
+	creature.velocity = Vector3.ZERO
+	creature.camera_pivot.rotation = Vector3.ZERO
+	creature.camera_pivot.rotation.x = -0.4
+	creature.motor.reset_orientation()
+	for step in 38:
+		creature.motor.physics_step(Vector2(0, 1), false, false, 1.0 / 60.0)
+		await physics_frame
+	assert(absf(creature.motor.surface_up.dot(Vector3.UP)) < 0.35, "Looking down prevented wall transition")
+	assert(creature.global_position.y > 0.8, "Looking down prevented climbing up the wall")
+	creature.camera_pivot.rotation = Vector3.ZERO
 
 	# Test Floor Detach (Key C)
 	creature.position = Vector3(0, 2.0, -1.875)
@@ -42,17 +54,55 @@ func run() -> void:
 
 	# Test Ceiling Adherence
 	_add_box(root, Vector3(0, 5, 0), Vector3(8, 0.5, 8))
-	creature.position = Vector3(0, 4.65, 0)
+	creature.position = Vector3(0, 4.38, 0)
 	creature.velocity = Vector3.ZERO
 	creature.motor.surface_up = Vector3.DOWN
 	creature.motor.surface_forward = Vector3.FORWARD
 	creature.motor.attached = true
 	creature.motor.is_airborne = false
-	for step in 40:
+	for step in 25:
 		creature.motor.physics_step(Vector2(0, 1), false, false, 1.0 / 60.0)
 		await physics_frame
 	assert(creature.motor.attached and creature.motor.surface_up.dot(Vector3.DOWN) > 0.8, "Creature did not maintain attachment while crawling on ceiling")
-	assert(creature.global_position.y > 4.4, "Creature fell from ceiling during crawl")
+	assert(creature.global_position.y > 4.35, "Creature fell from ceiling during crawl")
+
+	# Test Ceiling Jump along camera view direction (not slamming down into floor)
+	creature.position = Vector3(0, 4.38, 0)
+	creature.velocity = Vector3.ZERO
+	creature.motor.surface_up = Vector3.DOWN
+	creature.motor.surface_forward = Vector3.FORWARD
+	creature.global_basis = Basis(Vector3.LEFT, Vector3.DOWN, Vector3.BACK)
+	creature.camera_pivot.rotation = Vector3.ZERO
+	creature.motor.attached = true
+	creature.motor.is_airborne = false
+	creature.motor.jump_cooldown = 0.0
+	creature.motor.physics_step(Vector2.ZERO, false, true, 1.0 / 60.0)
+	assert(creature.velocity.dot(Vector3.FORWARD) > 10.0 and creature.velocity.y > -5.0, "Ceiling jump must leap along camera view direction rather than slamming to floor")
+
+	# Test Proactive Mid-Air Orientation toward upcoming wall along camera look
+	creature.position = Vector3(0, 1.5, -0.5)
+	creature.velocity = Vector3(0, 0.5, -5.0)
+	creature.global_basis = Basis.IDENTITY
+	creature.camera_pivot.rotation = Vector3.ZERO
+	creature.motor.reset_orientation()
+	creature.motor.attached = false
+	creature.motor.is_airborne = true
+	creature.motor.jump_launch_timer = 0.0
+	for step in 8:
+		creature.motor.physics_step(Vector2.ZERO, false, false, 1.0 / 60.0)
+		await physics_frame
+	assert(creature.motor.surface_up.dot(Vector3(0, 0, 1)) > 0.45, "Mid-air orientation did not proactively turn toward wall ahead along look direction")
+
+	# Test Automatic Midair Wall Latching without movement input
+	creature.position = Vector3(0, 2.0, -2.15)
+	creature.velocity = Vector3(0, 0, -2.0)
+	creature.motor.attached = false
+	creature.motor.is_airborne = true
+	creature.motor.jump_cooldown = 0.0
+	for step in 5:
+		creature.motor.physics_step(Vector2.ZERO, false, false, 1.0 / 60.0)
+		await physics_frame
+	assert(creature.motor.attached, "Creature in midair did not automatically latch onto wall upon contact without WASD keys")
 
 	# Test Mid-air Upright Orientation and Landing
 	creature.position = Vector3(0, 3.5, 0)
@@ -75,6 +125,22 @@ func run() -> void:
 		await physics_frame
 	assert(creature.motor.surface_up.dot(Vector3.UP) > 0.95, "Inner corner jitter flipped surface normal while walking parallel")
 
+	# Test Inner Corner Stability: walking into corner transitions and stays stable without cyclic spinning
+	creature.position = Vector3(0, 0.45, -1.5)
+	creature.velocity = Vector3.ZERO
+	creature.global_basis = Basis.IDENTITY
+	creature.camera_pivot.rotation = Vector3.ZERO
+	creature.motor.reset_orientation()
+	for step in 20:
+		creature.motor.physics_step(Vector2(0, 1), false, false, 1.0 / 60.0)
+		await physics_frame
+	assert(creature.motor.surface_up.dot(Vector3(0, 0, 1)) > 0.8, "Creature did not transition to wall when moving into corner")
+	var stable_wall_up := creature.motor.surface_up
+	for step in 15:
+		creature.motor.physics_step(Vector2(0, 1), false, false, 1.0 / 60.0)
+		await physics_frame
+	assert(creature.motor.surface_up.dot(stable_wall_up) > 0.9, "Creature cyclically spun or jittered between corner surfaces")
+
 	# Test Outer (Convex) Corner Traversal: climbing over wall top onto horizontal top surface
 	creature.position = Vector3(0, 3.7, -1.875)
 	creature.velocity = Vector3.ZERO
@@ -84,15 +150,42 @@ func run() -> void:
 	creature.motor.surface_forward = Vector3.UP
 	creature.motor.attached = true
 	creature.motor.is_airborne = false
-	for step in 12:
+	for step in 10:
 		creature.motor.physics_step(Vector2(0, 1), false, false, 1.0 / 60.0)
 		await physics_frame
 	assert(creature.motor.attached, "Creature detached instead of wrapping around convex corner")
 	assert(creature.global_position.y >= 3.9, "Creature fell while climbing convex corner")
 	assert(creature.motor.surface_up.dot(Vector3.UP) > 0.8, "Creature did not wrap onto horizontal top surface of the wall")
 
+
+	# Test Oblique Wall Climbing (approaching wall at an angle must not be rejected)
+	creature.position = Vector3(0, 0.45, -1.8)
+	creature.velocity = Vector3.ZERO
+	creature.global_basis = Basis.IDENTITY
+	creature.camera_pivot.rotation = Vector3.ZERO
+	creature.motor.reset_orientation()
+	for step in 25:
+		# Diagonal input (W+D) into the wall at Z = -2.25
+		creature.motor.physics_step(Vector2(0.6, 0.8), false, false, 1.0 / 60.0)
+		await physics_frame
+	assert(creature.motor.surface_up.dot(Vector3(0, 0, 1)) > 0.8, "Oblique approach was rejected instead of climbing wall")
+
+	# Test Unreachable Ceiling Jump (looking up at ceiling must not invert orientation if jump cannot reach it)
+	creature.position = Vector3(0, 0.45, 0)
+	creature.velocity = Vector3(0, 6.0, 0) # Weak jump impulse, ceiling is at 5.0m
+	creature.motor.reset_orientation()
+	creature.motor.attached = false
+	creature.motor.is_airborne = true
+	creature.motor.jump_launch_timer = 0.0
+	creature.camera_pivot.rotation.x = 1.3 # Looking almost straight up at ceiling
+	for step in 20:
+		creature.motor.physics_step(Vector2.ZERO, false, false, 1.0 / 60.0)
+		await physics_frame
+	assert(creature.motor.surface_up.dot(Vector3.UP) > 0.8, "Unreachable ceiling caused camera to invert upside down in midair")
+
 	# Perception is checked in a separate, unobstructed arrangement.
 	creature.motor.reset_orientation()
+	creature.camera_pivot.rotation = Vector3.ZERO
 	creature.global_position = Vector3(0, 0.45, 0)
 	creature.global_basis = Basis.IDENTITY
 

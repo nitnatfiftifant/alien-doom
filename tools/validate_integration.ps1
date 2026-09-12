@@ -1,6 +1,8 @@
 $ErrorActionPreference = 'Stop'
 
 $candidates = @(
+    'C:\Users\nit\Downloads\Godot_v4.8-dev5_win64.exe\Godot_v4.8-dev5_win64_console.exe',
+    'C:\Users\nit\Downloads\Godot_v4.8-dev5_win64.exe',
     'D:\BeProgrammer\Godot_Engine_Experimental\Godot_v4.8-dev5_win64.exe',
     'C:\Users\HP\Downloads\Godot_v4.8-dev5_win64.exe\Godot_v4.8-dev5_win64_console.exe',
     'C:\Users\HP\Downloads\Godot_v4.8-dev5_win64.exe'

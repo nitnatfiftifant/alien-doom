@@ -20,7 +20,7 @@ func run() -> void:
 	assert(paused and pause_menu.overlay.visible, "Pause menu did not pause the scene tree")
 	pause_menu.resume()
 	assert(not paused and not pause_menu.overlay.visible, "Pause menu did not resume the scene tree")
-	assert(creature.run_speed == 8.0 and creature.jump_impulse == 13.0 and creature.jump_forward_impulse == 3.5 and creature.gravity_strength == 32.0, "CreatureController movement export defaults missing")
+	assert(creature.run_speed == 8.0 and creature.jump_impulse == 13.0 and creature.jump_forward_impulse == 0.0 and creature.gravity_strength == 32.0, "CreatureController movement export defaults missing")
 	creature.run_speed = 11.0
 	assert(creature.motor.run_speed == 11.0, "Changing CreatureController exported run_speed did not sync to motor")
 	creature.run_speed = 8.0
