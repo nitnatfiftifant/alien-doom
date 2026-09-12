@@ -10,6 +10,7 @@ extends Node
 @export var gravity_strength := 22.0
 @export var orientation_speed := 16.0
 @export var air_orientation_speed := 14.0
+@export var surface_smoothing_speed := 8.0  # how fast smooth_up tracks surface_up
 @export var jump_impulse := 13.0
 @export var jump_forward_impulse := 0.0
 @export var air_acceleration := 14.0
@@ -29,16 +30,24 @@ extends Node
 @export var wrap_back_distance := 1.15
 @export var wrap_lateral_offset := 0.22
 @export var surface_normal_threshold := 0.85
-@export var collision_opposition_threshold := 0.25
+@export_range(0.0, 0.1, 0.0001) var collision_opposition_threshold := 0.001
 @export var strong_opposition_threshold := 0.7
 @export_group("Landing")
 @export var landing_probe_distance := 0.4
 @export var floor_normal_threshold := 0.5
 @export var wall_landing_opposition := 0.4
+@export_range(-1.0, 1.0, 0.01) var jump_source_recontact_dot := 0.85
 
+# surface_up   — authoritative physics normal (snaps immediately on transition)
+# smooth_up    — interpolated version for movement axes + orientation (slerps each frame)
+# Both are kept in sync while on a surface; smooth_up may lag behind during transitions.
 var surface_up := Vector3.UP
+var smooth_up := Vector3.UP
 var surface_forward := Vector3.FORWARD
+var smooth_forward := Vector3.FORWARD
 var previous_surface_up := Vector3.UP
+var jump_source_up := Vector3.UP
+var opposite_transition_axis := Vector3.RIGHT
 
 var is_airborne := false
 var attached := true
@@ -55,10 +64,14 @@ const CAMERA_BASE_POS := Vector3(0, 0.18, 0)
 
 func reset_orientation(facing: Vector3 = Vector3.FORWARD) -> void:
 	surface_up = Vector3.UP
+	smooth_up = Vector3.UP
 	previous_surface_up = Vector3.UP
+	jump_source_up = Vector3.UP
+	opposite_transition_axis = Vector3.RIGHT
 	surface_forward = facing.slide(Vector3.UP).normalized()
 	if surface_forward.is_zero_approx():
 		surface_forward = Vector3.FORWARD
+	smooth_forward = surface_forward
 	is_airborne = false
 	attached = true
 	coyote_timer = 0.0
@@ -89,23 +102,47 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 	if corner_dwell_timer <= 0.0:
 		recent_surface_history.clear()
 
+	# Smooth up: slerp toward authoritative surface_up each frame.
+	# Used for movement axes + orientation so the character feels continuous.
+	# surface_up itself stays exact for physics (up_direction, stick force, raycasts).
+	if is_airborne:
+		# In air: smooth_up is handled inside _update_orientation alongside surface_up
+		smooth_up = surface_up
+	else:
+		var previous_smooth_up := smooth_up
+		var smoothing_weight := clampf(surface_smoothing_speed * delta, 0.0, 1.0)
+		smooth_up = _smooth_direction(smooth_up, surface_up, smoothing_weight, opposite_transition_axis)
+		# Rotate heading by the exact same incremental rotation as the smoothed
+		# surface normal. Projecting an already-final heading onto an intermediate
+		# plane twists the camera sideways at corners.
+		if previous_smooth_up.dot(smooth_up) < 0.999999:
+			var smooth_delta := Quaternion(previous_smooth_up, smooth_up)
+			var rotated_forward := (smooth_delta * smooth_forward).slide(smooth_up).normalized()
+			if not rotated_forward.is_zero_approx():
+				smooth_forward = rotated_forward
+
 	# 1. Handle Floor Detach (Key C)
 	if floor_detach_pressed and (attached or not is_airborne):
+		jump_source_up = surface_up
 		attached = false
 		is_airborne = true
 		coyote_timer = 0.0
 		jump_cooldown = detach_recontact_delay
 		jump_launch_timer = 0.04
 		surface_up = Vector3.UP
+		smooth_up = Vector3.UP
+		smooth_forward = surface_forward.slide(Vector3.UP).normalized()
 		previous_surface_up = Vector3.UP
 		body.velocity = body.velocity.slide(surface_up)
 
-	# 2. Camera-relative movement axes on current surface plane
-	if transition_cooldown <= 0.0:
+	# 2. Physics movement always follows the authoritative surface plane. Only
+	# the rendered body/camera uses the smoothed frame.
+	if transition_cooldown <= 0.0 and smooth_up.dot(surface_up) > 0.999:
 		var camera_forward := -camera_pivot.global_basis.z
 		camera_forward = camera_forward.slide(surface_up).normalized()
 		if not camera_forward.is_zero_approx():
 			surface_forward = camera_forward
+			smooth_forward = surface_forward
 	var forward := surface_forward.slide(surface_up).normalized()
 	if forward.is_zero_approx():
 		forward = _perpendicular_to(surface_up)
@@ -114,6 +151,7 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 
 	# 3. Handle Jump (Space): driven strictly by 3D camera view direction & WASD
 	if jump_pressed and (attached or coyote_timer > 0.0) and jump_cooldown <= 0.0:
+		jump_source_up = surface_up
 		var cam_3d_forward := -camera_pivot.global_basis.z
 		var cam_3d_right := camera_pivot.global_basis.x
 		var jump_dir := cam_3d_forward
@@ -162,6 +200,8 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 				_apply_surface_transition(new_normal, true, contact.get("position", Vector3.ZERO))
 			elif contact.get("transitioned", false):
 				_apply_surface_transition(new_normal, false)
+			else:
+				_align_surface_normal(new_normal)
 		else:
 			attached = false
 			is_airborne = true
@@ -176,11 +216,13 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 
 	# 6. Velocity computation & motion
 	var speed := (sneak_speed if sneaking else run_speed) * movement_multiplier
+	var attempted_surface_velocity := Vector3.ZERO
 	if attached:
 		var tangent_velocity := body.velocity.slide(surface_up)
 		tangent_velocity = tangent_velocity.move_toward(desired * speed, acceleration * delta)
 		var normal_velocity := -surface_up * stick_velocity
 		body.velocity = tangent_velocity + normal_velocity
+		attempted_surface_velocity = body.velocity
 		body.up_direction = surface_up
 		body.floor_snap_length = floor_snap_length
 		body.move_and_slide()
@@ -201,9 +243,10 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 
 	# 7. Post-move collision handling
 	if attached:
-		_adopt_slide_surface(desired)
-	elif is_airborne and jump_cooldown <= 0.0:
+		_adopt_slide_surface(desired, attempted_surface_velocity)
+	elif is_airborne:
 		_check_airborne_landing(desired)
+
 
 func _find_surface(desired: Vector3) -> Dictionary:
 	var space := body.get_world_3d().direct_space_state
@@ -267,13 +310,10 @@ func _find_surface(desired: Vector3) -> Dictionary:
 
 	return {}
 
-func _adopt_slide_surface(desired: Vector3) -> void:
-	if transition_cooldown > 0.0:
-		return
-
+func _adopt_slide_surface(desired: Vector3, attempted_velocity: Vector3) -> void:
 	var cam_look := -camera_pivot.global_basis.z
 	var best_normal := Vector3.ZERO
-	var strongest_opposition := 0.0
+	var strongest_opposition := -INF
 	for index in body.get_slide_collision_count():
 		var collision := body.get_slide_collision(index)
 		var normal := collision.get_normal().normalized()
@@ -287,34 +327,18 @@ func _adopt_slide_surface(desired: Vector3) -> void:
 		# Calculate opposition from movement, facing, or velocity
 		var move_opposition := -desired.dot(normal) if not desired.is_zero_approx() else 0.0
 		var look_opposition := -cam_look.dot(normal)
-		var vel_horiz := body.velocity.slide(surface_up)
+		# move_and_slide() removes the blocked normal component from body.velocity,
+		# so surface selection must use the velocity attempted before that call.
+		var vel_horiz := attempted_velocity.slide(surface_up)
 		var vel_opposition := -vel_horiz.normalized().dot(normal) if vel_horiz.length_squared() > 0.5 else 0.0
-
-		var opposition := 0.0
-		if not desired.is_zero_approx():
-			# While moving: adopt if moving into wall or facing wall while moving toward it
-			var intentional_push := move_opposition > 0.15 or (look_opposition > 0.25 and move_opposition > 0.05)
-			if not intentional_push:
-				continue
-			opposition = maxf(move_opposition, look_opposition * 0.8)
-		else:
-			# When stationary or coasting: latch if facing wall or sliding into it
-			if look_opposition < 0.4 and vel_opposition < 0.3:
-				continue
-			opposition = maxf(look_opposition * 0.8, vel_opposition * 0.8)
-
-		# 2. Anti-spin in inner corners: reject cycling back to recently visited surfaces unless firmly pushed into
-		var in_recent := false
-		for hist_norm in recent_surface_history:
-			if normal.dot(hist_norm) > surface_normal_threshold:
-				in_recent = true
-				break
-		if in_recent and opposition < 0.4:
+		var contact_approach := maxf(move_opposition, vel_opposition)
+		if contact_approach <= collision_opposition_threshold:
 			continue
 
-		# 3. Anti-jitter in corners/vents: don't immediately flip back to previous surface unless moving firmly into it
-		if normal.dot(previous_surface_up) > surface_normal_threshold and opposition < 0.4:
-			continue
+		# Contact itself authorizes adhesion. Opposition only selects the most
+		# relevant plane when the sphere touches several surfaces at once; it must
+		# never act as a minimum approach-angle threshold.
+		var opposition := maxf(contact_approach, look_opposition * 0.1)
 
 		if opposition > strongest_opposition:
 			strongest_opposition = opposition
@@ -325,6 +349,16 @@ func _adopt_slide_surface(desired: Vector3) -> void:
 
 	_apply_surface_transition(best_normal, false)
 	body.velocity = body.velocity.slide(surface_up) - surface_up * stick_velocity
+
+func _align_surface_normal(new_normal: Vector3) -> void:
+	var normalized_surface := new_normal.normalized()
+	if normalized_surface.is_zero_approx() or normalized_surface.dot(surface_up) > 0.999999:
+		return
+	var alignment := _surface_rotation(surface_up, normalized_surface)
+	var aligned_forward := (alignment * surface_forward).slide(normalized_surface).normalized()
+	if not aligned_forward.is_zero_approx():
+		surface_forward = aligned_forward
+	surface_up = normalized_surface
 
 func _apply_surface_transition(new_normal: Vector3, is_wrap := false, wrap_pos := Vector3.ZERO) -> void:
 	if new_normal.dot(surface_up) > surface_normal_threshold:
@@ -359,31 +393,31 @@ func _apply_surface_transition(new_normal: Vector3, is_wrap := false, wrap_pos :
 			recent_surface_history.pop_front()
 	corner_dwell_timer = 0.3
 
-	# Transform forward vector across surface transition using quaternion hinge rotation
-	var q: Quaternion
-	if old_up.dot(new_normal) < -0.99:
-		var cam_x := camera_pivot.global_basis.x
-		cam_x.y = 0.0
-		var axis := cam_x.normalized() if not cam_x.is_zero_approx() else Vector3.RIGHT
-		q = Quaternion(axis, PI)
-	else:
-		q = Quaternion(old_up, new_normal)
-
-	var transition_forward := (q * surface_forward).slide(surface_up).normalized()
-	if transition_forward.is_zero_approx():
-		var base_forward := -old_up if is_wrap else old_up
-		transition_forward = base_forward.slide(surface_up).normalized()
-	if not transition_forward.is_zero_approx():
-		surface_forward = transition_forward
+	# Physics heading changes immediately with the contacted plane. The separate
+	# smooth_forward is transported incrementally above for visual orientation.
+	var final_rotation := _surface_rotation(old_up, new_normal)
+	var transitioned_forward := (final_rotation * surface_forward).slide(surface_up).normalized()
+	if transitioned_forward.is_zero_approx():
+		var fallback_forward := -old_up if is_wrap else old_up
+		transitioned_forward = fallback_forward.slide(surface_up).normalized()
+	if not transitioned_forward.is_zero_approx():
+		surface_forward = transitioned_forward
 
 	if is_wrap:
-		body.velocity = transition_forward * (run_speed * 0.5) - surface_up * stick_velocity
+		var wrap_forward := surface_forward
+		if wrap_forward.is_zero_approx():
+			wrap_forward = (-old_up).slide(surface_up).normalized()
+		body.velocity = wrap_forward * (run_speed * 0.5) - surface_up * stick_velocity
 
 func _check_airborne_landing(_desired: Vector3) -> void:
-	# 1. Any slide collision during movement in the air automatically attaches the creature to the surface
+	# The CharacterBody sphere reports contacts from every side. During the short
+	# launch lockout, reject only the surface we jumped from; head/side contacts
+	# with another plane must still latch immediately.
 	for index in body.get_slide_collision_count():
 		var collision := body.get_slide_collision(index)
 		var normal := collision.get_normal().normalized()
+		if _is_blocked_jump_source(normal):
+			continue
 		_land_on_surface(normal)
 		return
 
@@ -398,7 +432,7 @@ func _check_airborne_landing(_desired: Vector3) -> void:
 		var landing_hit := space.intersect_ray(landing_query)
 		if not landing_hit.is_empty():
 			var normal: Vector3 = (landing_hit.normal as Vector3).normalized()
-			if vel.dot(normal) <= 0.5:
+			if vel.dot(normal) <= 0.5 and not _is_blocked_jump_source(normal):
 				_land_on_surface(normal)
 				return
 
@@ -408,8 +442,11 @@ func _check_airborne_landing(_desired: Vector3) -> void:
 	var ground_hit := space.intersect_ray(ground_query)
 	if not ground_hit.is_empty():
 		var normal: Vector3 = ground_hit.normal.normalized()
-		if normal.y > floor_normal_threshold:
+		if normal.y > floor_normal_threshold and not _is_blocked_jump_source(normal):
 			_land_on_surface(normal)
+
+func _is_blocked_jump_source(normal: Vector3) -> bool:
+	return jump_cooldown > 0.0 and normal.dot(jump_source_up) > jump_source_recontact_dot
 
 func _land_on_surface(normal: Vector3) -> void:
 	var old_up := surface_up
@@ -420,13 +457,24 @@ func _land_on_surface(normal: Vector3) -> void:
 	coyote_timer = coyote_time
 	transition_cooldown = surface_transition_delay
 
-	var q := Quaternion(old_up, normal) if old_up.dot(normal) > -0.99 else Quaternion(camera_pivot.global_basis.x, PI)
-	var new_forward := (q * surface_forward).slide(surface_up).normalized()
-	if new_forward.is_zero_approx():
-		new_forward = (-camera_pivot.global_basis.z).slide(surface_up).normalized()
-	if new_forward.is_zero_approx():
-		new_forward = _perpendicular_to(surface_up)
-	surface_forward = new_forward
+	var landed_rotation := _surface_rotation(old_up, normal)
+	var landed_forward := (landed_rotation * surface_forward).slide(surface_up).normalized()
+	if not landed_forward.is_zero_approx():
+		surface_forward = landed_forward
+
+func _surface_rotation(from_up: Vector3, to_up: Vector3) -> Quaternion:
+	if from_up.dot(to_up) > -0.999:
+		return Quaternion(from_up, to_up)
+	# Opposite planes have infinitely many valid 180-degree rotations. Turning
+	# around the camera's right axis preserves the player's screen-space heading
+	# and puts the old floor above them on the opposite wall.
+	var axis := camera_pivot.global_basis.x.slide(from_up).normalized() if camera_pivot != null else Vector3.ZERO
+	if axis.is_zero_approx():
+		axis = surface_forward.cross(from_up).normalized()
+	if axis.is_zero_approx():
+		axis = _perpendicular_to(from_up)
+	opposite_transition_axis = axis
+	return Quaternion(axis, PI)
 
 func _update_orientation(delta: float) -> void:
 	if is_airborne and jump_launch_timer <= 0.0:
@@ -500,24 +548,41 @@ func _update_orientation(delta: float) -> void:
 		cam_right.y = 0.0
 		var pitch_axis := cam_right.normalized() if not cam_right.is_zero_approx() else Vector3.RIGHT
 		var rot_speed := air_orientation_speed * proximity_factor
-		if surface_up.dot(target_up) < 0.0:
-			var angle := surface_up.signed_angle_to(target_up, pitch_axis)
-			surface_up = surface_up.rotated(pitch_axis, angle * clampf(rot_speed * delta, 0.0, 1.0)).normalized()
-		else:
-			surface_up = surface_up.slerp(target_up, clampf(rot_speed * delta, 0.0, 1.0)).normalized()
+		surface_up = _smooth_direction(surface_up, target_up, clampf(rot_speed * delta, 0.0, 1.0), pitch_axis)
 
-	var forward := surface_forward.slide(surface_up).normalized()
+	var forward := smooth_forward.slide(smooth_up).normalized()
 	if forward.is_zero_approx():
-		forward = _perpendicular_to(surface_up)
-	surface_forward = forward
+		forward = _perpendicular_to(smooth_up)
+	smooth_forward = forward
 
-	# Quaternion-based smooth orientation
-	var target_basis := Basis.looking_at(forward, surface_up)
+	# Body orientation uses smooth_up as target — body slerps at orientation_speed.
+	# Since smooth_up itself is already slerping, this gives a double-smooth effect:
+	# the target moves smoothly AND the body chases it smoothly.
+	var target_basis := Basis.looking_at(forward, smooth_up)
 	var current_q := body.global_basis.orthonormalized().get_rotation_quaternion()
 	var target_q := target_basis.orthonormalized().get_rotation_quaternion()
-	var speed := air_orientation_speed if is_airborne else orientation_speed
-	body.global_basis = Basis(current_q.slerp(target_q, clampf(speed * delta, 0.0, 1.0)).normalized()).orthonormalized()
+	var body_speed := air_orientation_speed if is_airborne else orientation_speed
+	body.global_basis = Basis(current_q.slerp(target_q, clampf(body_speed * delta, 0.0, 1.0)).normalized()).orthonormalized()
 
 func _perpendicular_to(normal: Vector3) -> Vector3:
 	var axis := Vector3.UP if absf(normal.dot(Vector3.UP)) < 0.9 else Vector3.FORWARD
 	return axis.slide(normal).normalized()
+
+func _smooth_direction(from_direction: Vector3, to_direction: Vector3, weight: float, fallback_axis: Vector3) -> Vector3:
+	var from_normal := from_direction.normalized()
+	var to_normal := to_direction.normalized()
+	if from_normal.is_zero_approx():
+		return to_normal
+	if to_normal.is_zero_approx():
+		return from_normal
+	var direction_dot := clampf(from_normal.dot(to_normal), -1.0, 1.0)
+	if direction_dot > 0.999999:
+		return from_normal.lerp(to_normal, weight).normalized()
+	var axis := from_normal.cross(to_normal).normalized()
+	if axis.is_zero_approx():
+		axis = fallback_axis.slide(from_normal).normalized()
+	if axis.is_zero_approx():
+		axis = _perpendicular_to(from_normal)
+	# Vector3.rotated() requires a strictly normalized axis. Normalize directly
+	# at the call to discard floating-point drift accumulated between frames.
+	return from_normal.rotated(axis.normalized(), acos(direction_dot) * weight).normalized()

@@ -64,8 +64,15 @@ animations = [{
 collision_layer = 2
 collision_mask = 21
 script = ExtResource("1")
-gravity_strength = 32.0
-air_orientation_speed = 20.0
+run_speed = 4.0
+sneak_speed = 1.5
+acceleration = 14.0
+jump_impulse = 6.5
+air_acceleration = 7.0
+air_max_speed = 6.0
+gravity_strength = 16.0
+orientation_speed = 8.0
+air_orientation_speed = 10.0
 corpse_drag_config = ExtResource("12")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=952059383]
@@ -153,5 +160,5 @@ layout_mode = 2
 text = "WASD бег | Shift скрытность | Space прыжок | C на пол
 ЛКМ укус | ПКМ кислота | E взаимодействие/труп"
 
-[node name="PauseMenu" parent="." node_paths=PackedStringArray("creature") instance=ExtResource("13")]
+[node name="PauseMenu" parent="." unique_id=977187505 node_paths=PackedStringArray("creature") instance=ExtResource("13")]
 creature = NodePath("..")

@@ -26,6 +26,8 @@ func run() -> void:
 		await physics_frame
 	assert(absf(creature.motor.surface_up.dot(Vector3.UP)) < 0.35, "Creature did not transition from floor to vertical wall")
 	assert(creature.global_position.y > 0.8, "Creature attached to wall but did not climb")
+	var camera_forward_after_corner := -creature.camera_pivot.global_basis.z
+	assert(absf(camera_forward_after_corner.dot(Vector3.RIGHT)) < 0.15, "Corner smoothing twisted the camera sideways")
 	var wall_normal := creature.motor.surface_up
 	var wall_forward := creature.motor.surface_forward
 	creature.motor.physics_step(Vector2.ZERO, false, true, 1.0 / 60.0)
@@ -170,6 +172,20 @@ func run() -> void:
 		await physics_frame
 	assert(creature.motor.surface_up.dot(Vector3(0, 0, 1)) > 0.8, "Oblique approach was rejected instead of climbing wall")
 
+	# A nearly tangential approach must still climb once the sphere physically
+	# contacts the wall; only perfectly parallel seam contact is ignored.
+	creature.position = Vector3(0, 0.45, -1.86)
+	creature.velocity = Vector3.ZERO
+	creature.global_basis = Basis.IDENTITY
+	creature.camera_pivot.rotation = Vector3.ZERO
+	creature.motor.reset_orientation()
+	for step in 30:
+		creature.motor.physics_step(Vector2(1.0, 0.02), false, false, 1.0 / 60.0)
+		await physics_frame
+		if creature.motor.surface_up.dot(Vector3(0, 0, 1)) > 0.8:
+			break
+	assert(creature.motor.surface_up.dot(Vector3(0, 0, 1)) > 0.8, "Shallow physical contact was rejected by an approach-angle threshold")
+
 	# Test Unreachable Ceiling Jump (looking up at ceiling must not invert orientation if jump cannot reach it)
 	creature.position = Vector3(0, 0.45, 0)
 	creature.velocity = Vector3(0, 6.0, 0) # Weak jump impulse, ceiling is at 5.0m
@@ -182,6 +198,31 @@ func run() -> void:
 		creature.motor.physics_step(Vector2.ZERO, false, false, 1.0 / 60.0)
 		await physics_frame
 	assert(creature.motor.surface_up.dot(Vector3.UP) > 0.8, "Unreachable ceiling caused camera to invert upside down in midair")
+
+	# A head-first collision during jump recontact lockout must latch to a new
+	# surface. Previously the collision was discarded and the stopped body fell.
+	creature.global_basis = Basis.IDENTITY
+	creature.camera_pivot.rotation = Vector3.ZERO
+	creature.motor.reset_orientation()
+	creature.position = Vector3(0, 3.85, 0)
+	creature.velocity = Vector3(0, 10.0, 0)
+	creature.motor.attached = false
+	creature.motor.is_airborne = true
+	creature.motor.jump_source_up = Vector3.UP
+	creature.motor.jump_cooldown = 0.2
+	for step in 8:
+		creature.motor.physics_step(Vector2.ZERO, false, false, 1.0 / 60.0)
+		await physics_frame
+		if creature.motor.attached:
+			break
+	assert(creature.motor.attached and creature.motor.surface_up.dot(Vector3.DOWN) > 0.8, "Head-first collision during jump lockout did not attach to ceiling")
+
+	# Opposite walls must use the camera-right hinge, never an arbitrary 180° axis.
+	creature.global_basis = Basis.IDENTITY
+	creature.camera_pivot.rotation = Vector3.ZERO
+	creature.motor.surface_forward = Vector3.UP
+	var opposite_wall_rotation := creature.motor._surface_rotation(Vector3.FORWARD, Vector3.BACK)
+	assert((opposite_wall_rotation * Vector3.UP).dot(Vector3.DOWN) > 0.99, "Opposite-wall landing rotated the view toward the floor")
 
 	# Perception is checked in a separate, unobstructed arrangement.
 	creature.motor.reset_orientation()

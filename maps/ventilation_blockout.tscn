@@ -1,25 +1,20 @@
-[gd_scene format=4]
+[gd_scene format=4 uid="uid://cx6qt74xxypsr"]
 
-[ext_resource type="Script" path="res://addons/func_godot/src/map/func_godot_map.gd" id="1"]
-[ext_resource type="Resource" path="res://maps/map_settings.tres" id="2"]
-[ext_resource type="Script" path="res://maps/map_runtime_loader.gd" id="3"]
+[ext_resource type="Script" uid="uid://cwu5cf7a0awcd" path="res://addons/func_godot/src/map/func_godot_map.gd" id="1"]
+[ext_resource type="Resource" uid="uid://dwkxy8f1us0nm" path="res://maps/map_settings.tres" id="2"]
+[ext_resource type="Script" uid="uid://ca3m6gwddhbu8" path="res://maps/map_runtime_loader.gd" id="3"]
 [ext_resource type="Material" path="res://materials/Industrial/CROSSCUBE.tres" id="3_5gah0"]
 [ext_resource type="Material" path="res://materials/Industrial/STORAGE.tres" id="4_j0ka1"]
 [ext_resource type="Material" path="res://materials/Bricks/BIGBRICKS.tres" id="4_km2ob"]
-[ext_resource type="PackedScene" path="res://gameplay/player/creature.tscn" id="4_nq83c"]
+[ext_resource type="PackedScene" uid="uid://cx2wcytdi6sdi" path="res://gameplay/player/creature.tscn" id="4_nq83c"]
 [ext_resource type="Material" path="res://materials/Industrial/METALTILE.tres" id="5_41c5m"]
 [ext_resource type="Material" path="res://materials/Bricks/DUNGEONBRICKS.tres" id="5_hg4sp"]
 [ext_resource type="Material" path="res://materials/Bricks/ROUNDBRICKS.tres" id="6_nq83c"]
 [ext_resource type="Material" path="res://materials/Bricks/CLAYBRICKS.tres" id="7_gt82u"]
-[ext_resource type="Script" path="res://gameplay/humans/human_controller.gd" id="7_stm41"]
 [ext_resource type="Material" path="res://materials/Tech/DOUBLELIGHTS.tres" id="8_680vk"]
-[ext_resource type="Resource" path="res://gameplay/humans/resources/default_human_vitality.tres" id="8_b0mpv"]
 [ext_resource type="Material" path="res://materials/Urban/GARAGE.tres" id="9_rwg2g"]
-[ext_resource type="Script" path="res://gameplay/player/creature_controller.gd" id="10_ku4bn"]
 [ext_resource type="Material" path="res://materials/Elements/RAPIDS.tres" id="11_7clm3"]
-[ext_resource type="PackedScene" path="res://gameplay/humans/human.tscn" id="12_ra2dq"]
-[ext_resource type="Script" path="res://gameplay/nest/nest.gd" id="12_y7hrk"]
-[ext_resource type="Resource" path="res://gameplay/player/resources/default_corpse_drag.tres" id="18_n4ix4"]
+[ext_resource type="PackedScene" uid="uid://cwgx8ukuhvt17" path="res://gameplay/humans/human.tscn" id="12_ra2dq"]
 [ext_resource type="PackedScene" path="res://gameplay/nest/nest.tscn" id="22_vg688"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_41c5m"]
@@ -968,39 +963,22 @@ mesh = SubResource("ArrayMesh_p6a2w")
 [node name="entity_4_collision_shape" type="CollisionShape3D" parent="FuncGodotMap/layer_1_RoomTest/entity_4_func_detail" unique_id=712849980]
 shape = SubResource("ConcavePolygonShape3D_4vjqm")
 
-[node name="entity_5_info_human_spawn" type="CharacterBody3D" parent="FuncGodotMap/layer_1_RoomTest" unique_id=1788599171 instance=ExtResource("12_ra2dq")]
+[node name="entity_5_info_human_spawn" parent="FuncGodotMap/layer_1_RoomTest" unique_id=1788599171 instance=ExtResource("12_ra2dq")]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -1.5, 1, 1)
-collision_layer = 4
-collision_mask = 27
-script = ExtResource("7_stm41")
 targetname = "worker_01"
-vitality_config = ExtResource("8_b0mpv")
 
-[node name="entity_6_info_human_spawn" type="CharacterBody3D" parent="FuncGodotMap/layer_1_RoomTest" unique_id=2138971025 instance=ExtResource("12_ra2dq")]
+[node name="entity_6_info_human_spawn" parent="FuncGodotMap/layer_1_RoomTest" unique_id=2138971025 instance=ExtResource("12_ra2dq")]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 4.5, 1, -5.5)
-collision_layer = 4
-collision_mask = 27
-script = ExtResource("7_stm41")
 role = "Guard"
 targetname = "guard_01"
-vitality_config = ExtResource("8_b0mpv")
 
 [node name="layer_3_RoomNest" type="Node3D" parent="FuncGodotMap" unique_id=842909845]
 
-[node name="entity_7_info_alien_start" type="CharacterBody3D" parent="FuncGodotMap/layer_3_RoomNest" unique_id=1781975864 instance=ExtResource("4_nq83c")]
+[node name="entity_7_info_alien_start" parent="FuncGodotMap/layer_3_RoomNest" unique_id=1781975864 instance=ExtResource("4_nq83c")]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 6, 0.5, -17.25)
-collision_layer = 2
-collision_mask = 21
-script = ExtResource("10_ku4bn")
-gravity_strength = 32.0
-air_orientation_speed = 20.0
-corpse_drag_config = ExtResource("18_n4ix4")
 
-[node name="entity_8_info_nest" type="Area3D" parent="FuncGodotMap/layer_3_RoomNest" unique_id=1328243120 instance=ExtResource("22_vg688")]
+[node name="entity_8_info_nest" parent="FuncGodotMap/layer_3_RoomNest" unique_id=1328243120 instance=ExtResource("22_vg688")]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 3, 0.5, -16)
-collision_layer = 0
-collision_mask = 2
-script = ExtResource("12_y7hrk")
 
 [node name="layer_4_LvlStart" type="Node3D" parent="FuncGodotMap" unique_id=961025588]
 
