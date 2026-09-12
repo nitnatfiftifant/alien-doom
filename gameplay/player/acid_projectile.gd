@@ -7,6 +7,15 @@ extends Node3D
 @export_flags_3d_physics var collision_mask := 13
 @export var splash_radius := 1.1
 @export var splash_damage_multiplier := 0.45
+@export_group("Impact visual")
+@export var impact_radius := 0.12
+@export var impact_color := Color(0.25, 1.0, 0.04, 0.8)
+@export var impact_emission := Color(0.12, 1.0, 0.02)
+@export var impact_duration := 0.22
+@export var impact_scale_multiplier := 2.0
+@export_group("Queries")
+@export_flags_3d_physics var splash_collision_mask := 4
+@export_range(1, 64) var maximum_splash_results := 16
 var direction := Vector3.FORWARD
 var instigator: Node
 var travelled := 0.0
@@ -55,13 +64,13 @@ func _apply_splash(direct_health: HealthComponent) -> void:
 	var parameters := PhysicsShapeQueryParameters3D.new()
 	parameters.shape = shape
 	parameters.transform = Transform3D(Basis.IDENTITY, global_position)
-	parameters.collision_mask = 4
+	parameters.collision_mask = splash_collision_mask
 	if instigator != null:
 		parameters.exclude = [instigator]
 	var damaged: Array[HealthComponent] = []
 	if direct_health != null:
 		damaged.append(direct_health)
-	for result in get_world_3d().direct_space_state.intersect_shape(parameters, 16):
+	for result in get_world_3d().direct_space_state.intersect_shape(parameters, maximum_splash_results):
 		var nearby_health := _find_health(result.collider as Node)
 		if nearby_health != null and not damaged.has(nearby_health):
 			damaged.append(nearby_health)
@@ -89,14 +98,14 @@ func _find_contract_node(node: Node, method: StringName) -> Node:
 func _spawn_impact_effect() -> void:
 	var effect := MeshInstance3D.new()
 	var mesh := SphereMesh.new()
-	mesh.radius = 0.12
-	mesh.height = 0.24
+	mesh.radius = impact_radius
+	mesh.height = impact_radius * 2.0
 	effect.mesh = mesh
 	var material := StandardMaterial3D.new()
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.albedo_color = Color(0.25, 1.0, 0.04, 0.8)
+	material.albedo_color = impact_color
 	material.emission_enabled = true
-	material.emission = Color(0.12, 1.0, 0.02)
+	material.emission = impact_emission
 	effect.material_override = material
 	var effect_parent := get_tree().current_scene
 	if effect_parent == null:
@@ -105,6 +114,6 @@ func _spawn_impact_effect() -> void:
 	effect.global_position = global_position
 	var tween := effect.create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(effect, "scale", Vector3.ONE * splash_radius * 2.0, 0.22)
-	tween.tween_property(effect, "transparency", 1.0, 0.22)
+	tween.tween_property(effect, "scale", Vector3.ONE * splash_radius * impact_scale_multiplier, impact_duration)
+	tween.tween_property(effect, "transparency", 1.0, impact_duration)
 	tween.chain().tween_callback(effect.queue_free)

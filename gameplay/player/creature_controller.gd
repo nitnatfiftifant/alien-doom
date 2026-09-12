@@ -44,6 +44,8 @@ const MOVEMENT_PROPERTIES: Array[StringName] = [
 	set(value): stick_velocity = value; _sync_motor_prop(&"stick_velocity", value)
 @export var probe_length := 1.2:
 	set(value): probe_length = value; _sync_motor_prop(&"probe_length", value)
+@export_group("Abilities")
+@export var corpse_drag_config: Resource
 
 @onready var camera_pivot: Node3D = $CameraPivot
 @onready var motor: SurfaceMotor = $SurfaceMotor
@@ -68,6 +70,7 @@ func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	add_to_group("creature")
 	_sync_motor_parameters()
+	carry.config = corpse_drag_config
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
 
@@ -91,9 +94,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"acid"):
 		abilities.spit_acid(self)
 	if event.is_action_pressed(&"interact"):
-		carry.toggle(self)
-	if event.is_action_pressed(&"ui_cancel"):
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		carry.begin_grab(self)
+	elif event.is_action_released(&"interact"):
+		carry.drop()
 
 func _physics_process(delta: float) -> void:
 	sneak = Input.is_action_pressed(&"sneak")

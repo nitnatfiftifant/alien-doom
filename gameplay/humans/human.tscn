@@ -1,111 +1,137 @@
-[gd_scene load_steps=27 format=3]
+[gd_scene format=3 uid="uid://cwgx8ukuhvt17"]
 
-[ext_resource type="Script" path="res://gameplay/humans/human_controller.gd" id="1"]
-[ext_resource type="Script" path="res://gameplay/humans/components/stress_component.gd" id="2"]
-[ext_resource type="Script" path="res://gameplay/humans/components/perception_component.gd" id="3"]
-[ext_resource type="Script" path="res://gameplay/humans/components/human_state_machine.gd" id="4"]
-[ext_resource type="Script" path="res://gameplay/humans/components/states/calm_state.gd" id="5"]
-[ext_resource type="Script" path="res://gameplay/humans/components/states/cautious_state.gd" id="6"]
-[ext_resource type="Script" path="res://gameplay/humans/components/states/post_alert_state.gd" id="7"]
-[ext_resource type="Script" path="res://gameplay/humans/components/states/alert_state.gd" id="8"]
-[ext_resource type="Script" path="res://gameplay/world/health_component.gd" id="9"]
-[ext_resource type="Script" path="res://gameplay/humans/components/ranged_combat_component.gd" id="10"]
+[ext_resource type="Script" uid="uid://bwfqvi1c2vtdq" path="res://gameplay/humans/human_controller.gd" id="1"]
+[ext_resource type="Script" uid="uid://bq41mq5lu2qou" path="res://gameplay/humans/components/stress_component.gd" id="2"]
+[ext_resource type="Script" uid="uid://bg25r1ny3578e" path="res://gameplay/humans/components/perception_component.gd" id="3"]
+[ext_resource type="Script" uid="uid://cmju8dcp1lifn" path="res://gameplay/humans/components/human_state_machine.gd" id="4"]
+[ext_resource type="Script" uid="uid://bkhis03re7mg7" path="res://gameplay/humans/components/states/calm_state.gd" id="5"]
+[ext_resource type="Script" uid="uid://iml0xf0q7aq3" path="res://gameplay/humans/components/states/cautious_state.gd" id="6"]
+[ext_resource type="Script" uid="uid://bss40bxwsfm8u" path="res://gameplay/humans/components/states/post_alert_state.gd" id="7"]
+[ext_resource type="Script" uid="uid://v33jyoamkcu0" path="res://gameplay/humans/components/states/alert_state.gd" id="8"]
+[ext_resource type="Script" uid="uid://d0dry160wca6g" path="res://gameplay/world/health_component.gd" id="9"]
+[ext_resource type="Script" uid="uid://cmawbbaif58xg" path="res://gameplay/humans/components/ranged_combat_component.gd" id="10"]
 [ext_resource type="Resource" path="res://gameplay/humans/resources/default_human_vitality.tres" id="11"]
-[ext_resource type="PackedScene" path="res://gameplay/humans/assets/ual1_human.glb" id="12"]
-[ext_resource type="Script" path="res://gameplay/humans/components/human_animation_component.gd" id="13"]
-[ext_resource type="PackedScene" path="res://gameplay/humans/assets/guard_pistol.glb" id="14"]
-[ext_resource type="Script" path="res://gameplay/humans/components/human_weapon_component.gd" id="15"]
-[ext_resource type="Script" path="res://gameplay/humans/components/substates/idle_behavior.gd" id="16"]
-[ext_resource type="Script" path="res://gameplay/humans/components/substates/patrol_behavior.gd" id="17"]
-[ext_resource type="Script" path="res://gameplay/humans/components/substates/investigate_behavior.gd" id="18"]
-[ext_resource type="Script" path="res://gameplay/humans/components/substates/search_behavior.gd" id="19"]
-[ext_resource type="Script" path="res://gameplay/humans/components/substates/flee_behavior.gd" id="20"]
-[ext_resource type="Script" path="res://gameplay/humans/components/substates/combat_behavior.gd" id="21"]
-[ext_resource type="Script" path="res://gameplay/humans/components/human_ragdoll_component.gd" id="22"]
+[ext_resource type="PackedScene" uid="uid://ba2elxibmfn3l" path="res://gameplay/humans/assets/ual1_human.glb" id="12"]
+[ext_resource type="Script" uid="uid://c8qnit3kaiulp" path="res://gameplay/humans/components/human_animation_component.gd" id="13"]
+[ext_resource type="PackedScene" uid="uid://jk0iuc26anb0" path="res://gameplay/humans/assets/guard_pistol.glb" id="14"]
+[ext_resource type="Script" uid="uid://cm4ii7ktjveby" path="res://gameplay/humans/components/human_weapon_component.gd" id="15"]
+[ext_resource type="Script" uid="uid://mqbk01yj5it5" path="res://gameplay/humans/components/substates/idle_behavior.gd" id="16"]
+[ext_resource type="Script" uid="uid://bpkhgucxk1pa0" path="res://gameplay/humans/components/substates/patrol_behavior.gd" id="17"]
+[ext_resource type="Script" uid="uid://dl53mlp5xkg71" path="res://gameplay/humans/components/substates/investigate_behavior.gd" id="18"]
+[ext_resource type="Script" uid="uid://daag4ln532v6k" path="res://gameplay/humans/components/substates/search_behavior.gd" id="19"]
+[ext_resource type="Script" uid="uid://cja364vsv8c3d" path="res://gameplay/humans/components/substates/flee_behavior.gd" id="20"]
+[ext_resource type="Script" uid="uid://cw0v32ltljqfu" path="res://gameplay/humans/components/substates/combat_behavior.gd" id="21"]
+[ext_resource type="Script" uid="uid://dnuq0jpouq060" path="res://gameplay/humans/components/human_ragdoll_component.gd" id="22"]
+
 [sub_resource type="CapsuleShape3D" id="HumanShape"]
-radius = 0.5
 height = 2.25
-[sub_resource type="CapsuleMesh" id="HumanMesh"]
-radius = 0.5
-height = 2.25
+
 [sub_resource type="StandardMaterial3D" id="HumanMaterial"]
 albedo_color = Color(0.95, 0.48, 0.12, 1)
+
+[sub_resource type="CapsuleMesh" id="HumanMesh"]
+height = 2.25
+
 [sub_resource type="SphereMesh" id="IndicatorMesh"]
 radius = 0.14
 height = 0.28
 
-[node name="Human" type="CharacterBody3D"]
+[node name="Human" type="CharacterBody3D" unique_id=1788599171]
 collision_layer = 4
-collision_mask = 19
+collision_mask = 27
 script = ExtResource("1")
 vitality_config = ExtResource("11")
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-position = Vector3(0, 1.125, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1528627288]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.125, 0)
 shape = SubResource("HumanShape")
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-position = Vector3(0, 1.125, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1072541929]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.125, 0)
 visible = false
-mesh = SubResource("HumanMesh")
 material_override = SubResource("HumanMaterial")
-[node name="VisualRoot" type="Node3D" parent="."]
-rotation = Vector3(0, 3.1415927, 0)
-[node name="AnimatedModel" parent="VisualRoot" instance=ExtResource("12")]
-[node name="StateIndicator" type="MeshInstance3D" parent="."]
-position = Vector3(0, 2.55, 0)
+mesh = SubResource("HumanMesh")
+
+[node name="VisualRoot" type="Node3D" parent="." unique_id=435296259]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, 0)
+
+[node name="AnimatedModel" parent="VisualRoot" unique_id=790585862 instance=ExtResource("12")]
+
+[node name="StateIndicator" type="MeshInstance3D" parent="." unique_id=2076347498]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.55, 0)
 mesh = SubResource("IndicatorMesh")
-[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="." unique_id=1411003338]
 path_height_offset = 1.0
-[node name="StressComponent" type="Node" parent="."]
+
+[node name="StressComponent" type="Node" parent="." unique_id=1166636417]
 script = ExtResource("2")
-[node name="PerceptionComponent" type="Node3D" parent="." node_paths=PackedStringArray("owner_body")]
-position = Vector3(0, 1.65, 0)
+
+[node name="PerceptionComponent" type="Node3D" parent="." unique_id=1679562453 node_paths=PackedStringArray("owner_body")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.65, 0)
 script = ExtResource("3")
 owner_body = NodePath("..")
-[node name="HealthComponent" type="Node" parent="."]
+
+[node name="HealthComponent" type="Node" parent="." unique_id=156708299]
 script = ExtResource("9")
-[node name="RangedCombatComponent" type="Node" parent="." node_paths=PackedStringArray("actor", "muzzle")]
+
+[node name="RangedCombatComponent" type="Node" parent="." unique_id=492508192 node_paths=PackedStringArray("actor", "muzzle")]
 script = ExtResource("10")
 actor = NodePath("..")
 muzzle = NodePath("../PerceptionComponent")
-[node name="HumanAnimationComponent" type="Node" parent="." node_paths=PackedStringArray("actor", "visual_root", "combat")]
+
+[node name="HumanAnimationComponent" type="Node" parent="." unique_id=423616412 node_paths=PackedStringArray("actor", "visual_root", "combat")]
 script = ExtResource("13")
 actor = NodePath("..")
 visual_root = NodePath("../VisualRoot")
 combat = NodePath("../RangedCombatComponent")
-[node name="HumanWeaponComponent" type="Node" parent="." node_paths=PackedStringArray("actor", "visual_root")]
+
+[node name="HumanWeaponComponent" type="Node" parent="." unique_id=194556426 node_paths=PackedStringArray("actor", "visual_root")]
 script = ExtResource("15")
 actor = NodePath("..")
 visual_root = NodePath("../VisualRoot")
 pistol_scene = ExtResource("14")
-[node name="HumanRagdollComponent" type="Node" parent="." node_paths=PackedStringArray("visual_root")]
+
+[node name="HumanRagdollComponent" type="Node" parent="." unique_id=888218436 node_paths=PackedStringArray("visual_root")]
 script = ExtResource("22")
 visual_root = NodePath("../VisualRoot")
-[node name="HumanStateMachine" type="Node" parent="." node_paths=PackedStringArray("actor")]
+
+[node name="HumanStateMachine" type="Node" parent="." unique_id=502287181 node_paths=PackedStringArray("actor")]
 script = ExtResource("4")
 actor = NodePath("..")
-[node name="Calm" type="Node" parent="HumanStateMachine"]
+
+[node name="Calm" type="Node" parent="HumanStateMachine" unique_id=2084922241]
 script = ExtResource("5")
-state_id = 0
-[node name="Idle" type="Node" parent="HumanStateMachine/Calm"]
+
+[node name="Idle" type="Node" parent="HumanStateMachine/Calm" unique_id=22625379]
 script = ExtResource("16")
-[node name="Patrol" type="Node" parent="HumanStateMachine/Calm"]
+
+[node name="Patrol" type="Node" parent="HumanStateMachine/Calm" unique_id=1580538672]
 script = ExtResource("17")
-[node name="Cautious" type="Node" parent="HumanStateMachine"]
+
+[node name="Cautious" type="Node" parent="HumanStateMachine" unique_id=1706983893]
 script = ExtResource("6")
 state_id = 1
-[node name="Investigate" type="Node" parent="HumanStateMachine/Cautious"]
+
+[node name="Investigate" type="Node" parent="HumanStateMachine/Cautious" unique_id=1419082080]
 script = ExtResource("18")
-[node name="PostAlert" type="Node" parent="HumanStateMachine"]
+
+[node name="PostAlert" type="Node" parent="HumanStateMachine" unique_id=304303847]
 script = ExtResource("7")
 state_id = 2
-[node name="Search" type="Node" parent="HumanStateMachine/PostAlert"]
+
+[node name="Search" type="Node" parent="HumanStateMachine/PostAlert" unique_id=1418815439]
 script = ExtResource("19")
-[node name="Flee" type="Node" parent="HumanStateMachine/PostAlert"]
+
+[node name="Flee" type="Node" parent="HumanStateMachine/PostAlert" unique_id=1541291957]
 script = ExtResource("20")
-[node name="Alert" type="Node" parent="HumanStateMachine"]
+
+[node name="Alert" type="Node" parent="HumanStateMachine" unique_id=1499621494]
 script = ExtResource("8")
 state_id = 3
-[node name="Flee" type="Node" parent="HumanStateMachine/Alert"]
+
+[node name="Flee" type="Node" parent="HumanStateMachine/Alert" unique_id=1739294775]
 script = ExtResource("20")
-[node name="Combat" type="Node" parent="HumanStateMachine/Alert"]
+
+[node name="Combat" type="Node" parent="HumanStateMachine/Alert" unique_id=2110860957]
 script = ExtResource("21")

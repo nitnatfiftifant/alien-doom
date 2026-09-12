@@ -16,6 +16,25 @@ extends Node
 @export var air_max_speed := 12.0
 @export var stick_velocity := 3.5
 @export var probe_length := 1.2
+@export_group("Contact timing")
+@export var coyote_time := 0.08
+@export var jump_recontact_delay := 0.2
+@export var detach_recontact_delay := 0.25
+@export var surface_transition_delay := 0.15
+@export var floor_snap_length := 0.4
+@export_group("Corner probing")
+@export var forward_probe_distance := 0.4
+@export var wrap_forward_offset := 0.75
+@export var wrap_down_offset := 0.7
+@export var wrap_back_distance := 1.35
+@export var wrap_lateral_offset := 0.22
+@export var surface_normal_threshold := 0.85
+@export var collision_opposition_threshold := 0.35
+@export var strong_opposition_threshold := 0.75
+@export_group("Landing")
+@export var landing_probe_distance := 0.9
+@export var floor_normal_threshold := 0.5
+@export var wall_landing_opposition := 0.4
 
 var surface_up := Vector3.UP
 var surface_forward := Vector3.FORWARD
@@ -56,7 +75,7 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 		attached = false
 		is_airborne = true
 		coyote_timer = 0.0
-		jump_cooldown = 0.25
+		jump_cooldown = detach_recontact_delay
 		# Instantly target floor upright orientation and kill stick velocity
 		surface_up = Vector3.UP
 		previous_surface_up = Vector3.UP
@@ -82,14 +101,14 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 		attached = false
 		is_airborne = true
 		coyote_timer = 0.0
-		jump_cooldown = 0.2
+		jump_cooldown = jump_recontact_delay
 
 	# 4. Surface search and adherence
 	if not is_airborne and jump_cooldown <= 0.0:
 		var contact := _find_surface(desired)
 		if not contact.is_empty():
 			attached = true
-			coyote_timer = 0.08
+			coyote_timer = coyote_time
 			var new_normal: Vector3 = contact.normal.normalized()
 			if contact.get("is_wrap", false):
 				# Outer (convex) corner wrap
@@ -115,7 +134,7 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 		var normal_velocity := -surface_up * stick_velocity
 		body.velocity = tangent_velocity + normal_velocity
 		body.up_direction = surface_up
-		body.floor_snap_length = 0.4
+		body.floor_snap_length = floor_snap_length
 	else:
 		# Airborne: preserve existing velocity (including jump impulse!), apply gravity and air steering
 		var air_horiz := body.velocity.slide(Vector3.UP)
@@ -153,7 +172,7 @@ func _find_surface(desired: Vector3) -> Dictionary:
 
 	# 2. Forward-down angled probe (catches slopes and small drops ahead)
 	if not desired.is_zero_approx():
-		var forward_down_target := origin + desired * 0.4 - surface_up * probe_length
+		var forward_down_target := origin + desired * forward_probe_distance - surface_up * probe_length
 		var forward_down_query := PhysicsRayQueryParameters3D.create(origin, forward_down_target, 1)
 		forward_down_query.exclude = [body]
 		var forward_down_hit := space.intersect_ray(forward_down_query)
@@ -166,16 +185,16 @@ func _find_surface(desired: Vector3) -> Dictionary:
 	# Starts ahead of the ledge and casts back into the wrap-around face
 	if not desired.is_zero_approx():
 		var lateral := desired.cross(surface_up).normalized()
-		var lateral_offsets: Array[float] = [0.0, -0.22, 0.22]
+		var lateral_offsets: Array[float] = [0.0, -wrap_lateral_offset, wrap_lateral_offset]
 		for lateral_offset: float in lateral_offsets:
-			var wrap_start: Vector3 = origin + desired * 0.75 - surface_up * 0.7 + lateral * lateral_offset
-			var wrap_target: Vector3 = wrap_start - desired * 1.35
+			var wrap_start: Vector3 = origin + desired * wrap_forward_offset - surface_up * wrap_down_offset + lateral * lateral_offset
+			var wrap_target: Vector3 = wrap_start - desired * wrap_back_distance
 			var wrap_query := PhysicsRayQueryParameters3D.create(wrap_start, wrap_target, 1)
 			wrap_query.exclude = [body]
 			var wrap_hit := space.intersect_ray(wrap_query)
 			if not wrap_hit.is_empty():
 				var hit_norm: Vector3 = wrap_hit.normal.normalized()
-				if hit_norm.dot(surface_up) < 0.85:
+				if hit_norm.dot(surface_up) < surface_normal_threshold:
 					wrap_hit["transitioned"] = true
 					wrap_hit["is_wrap"] = true
 					return wrap_hit
@@ -187,14 +206,14 @@ func _adopt_slide_surface(desired: Vector3) -> void:
 		return
 
 	var best_normal := Vector3.ZERO
-	var strongest_opposition := 0.35
+	var strongest_opposition := collision_opposition_threshold
 	for index in body.get_slide_collision_count():
 		var collision := body.get_slide_collision(index)
 		var normal := collision.get_normal().normalized()
 		var opposition := -desired.dot(normal)
-		if opposition > strongest_opposition and normal.dot(surface_up) < 0.85:
+		if opposition > strongest_opposition and normal.dot(surface_up) < surface_normal_threshold:
 			# Anti-jitter: reject immediate bounce back to previous normal unless strongly opposed
-			if normal.dot(previous_surface_up) > 0.85 and opposition < 0.75:
+			if normal.dot(previous_surface_up) > surface_normal_threshold and opposition < strong_opposition_threshold:
 				continue
 			if opposition > strongest_opposition:
 				strongest_opposition = opposition
@@ -209,7 +228,7 @@ func _adopt_slide_surface(desired: Vector3) -> void:
 func _apply_surface_transition(new_normal: Vector3, is_wrap := false) -> void:
 	previous_surface_up = surface_up
 	surface_up = new_normal
-	transition_cooldown = 0.15
+	transition_cooldown = surface_transition_delay
 	var base_forward := -previous_surface_up if is_wrap else previous_surface_up
 	var transition_forward := base_forward.slide(surface_up).normalized()
 	if not transition_forward.is_zero_approx():
@@ -220,30 +239,30 @@ func _check_airborne_landing(desired: Vector3) -> void:
 	for index in body.get_slide_collision_count():
 		var collision := body.get_slide_collision(index)
 		var normal := collision.get_normal().normalized()
-		if normal.y > 0.5:
+		if normal.y > floor_normal_threshold:
 			_land_on_surface(normal)
 			return
-		elif not desired.is_zero_approx() and -desired.dot(normal) > 0.4:
+		elif not desired.is_zero_approx() and -desired.dot(normal) > wall_landing_opposition:
 			_land_on_surface(normal)
 			return
 
 	# Proximity ground raycast check
 	var space := body.get_world_3d().direct_space_state
 	var origin := body.global_position
-	var ground_query := PhysicsRayQueryParameters3D.create(origin, origin + Vector3.DOWN * 0.9, 1)
+	var ground_query := PhysicsRayQueryParameters3D.create(origin, origin + Vector3.DOWN * landing_probe_distance, 1)
 	ground_query.exclude = [body]
 	var ground_hit := space.intersect_ray(ground_query)
 	if not ground_hit.is_empty():
 		var normal: Vector3 = ground_hit.normal.normalized()
-		if normal.y > 0.5:
+		if normal.y > floor_normal_threshold:
 			_land_on_surface(normal)
 
 func _land_on_surface(normal: Vector3) -> void:
 	surface_up = normal
 	is_airborne = false
 	attached = true
-	coyote_timer = 0.08
-	transition_cooldown = 0.15
+	coyote_timer = coyote_time
+	transition_cooldown = surface_transition_delay
 	surface_forward = surface_forward.slide(surface_up).normalized()
 	if surface_forward.is_zero_approx():
 		surface_forward = _perpendicular_to(surface_up)

@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="CorpseDragConfig" format=3 uid="uid://sab2e2rp6sve"]
+
+[ext_resource type="Script" uid="uid://35mvlhgm6iby" path="res://gameplay/player/resources/corpse_drag_config.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+minimum_hold_distance = 0.1
+maximum_hold_distance = 4.0
+spring_stiffness = 50.0

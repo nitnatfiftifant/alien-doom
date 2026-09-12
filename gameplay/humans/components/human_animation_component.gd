@@ -5,6 +5,9 @@ extends Node
 @export var visual_root: Node3D
 @export var combat: RangedCombatComponent
 @export var movement_threshold := 0.15
+@export_group("Skinned mesh visibility")
+@export var extra_cull_margin := 5.0
+@export var ignore_occlusion_culling := true
 
 var animation_player: AnimationPlayer
 var current_animation := &""
@@ -12,6 +15,7 @@ var death_started := false
 var action_lock := 0.0
 
 func _ready() -> void:
+	_configure_mesh_culling()
 	animation_player = visual_root.find_child("AnimationPlayer", true, false) as AnimationPlayer
 	if animation_player == null:
 		push_warning("Human animation model has no AnimationPlayer")
@@ -23,6 +27,12 @@ func _ready() -> void:
 	if combat != null:
 		combat.shot_fired.connect(_on_shot_fired)
 	_play(&"Idle")
+
+func _configure_mesh_culling() -> void:
+	for descendant in visual_root.find_children("*", "GeometryInstance3D", true, false):
+		var geometry := descendant as GeometryInstance3D
+		geometry.extra_cull_margin = extra_cull_margin
+		geometry.ignore_occlusion_culling = ignore_occlusion_culling
 
 func _process(delta: float) -> void:
 	if animation_player == null:

@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="FuncGodotFGDPointClass" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="FuncGodotFGDPointClass" format=3 uid="uid://ccmcutibvci7q"]
 
-[ext_resource type="Script" path="res://addons/func_godot/src/fgd/func_godot_fgd_point_class.gd" id="1"]
+[ext_resource type="Script" uid="uid://cxsqwtsqd8w33" path="res://addons/func_godot/src/fgd/func_godot_fgd_point_class.gd" id="1"]
+[ext_resource type="Script" uid="uid://d1nwwgcrner8b" path="res://addons/func_godot/src/fgd/func_godot_fgd_point_class_display_descriptor.gd" id="1_d30ht"]
 [ext_resource type="PackedScene" path="res://gameplay/world/func_omni_light.tscn" id="2"]
 
 [resource]
@@ -8,6 +9,19 @@ script = ExtResource("1")
 scene_file = ExtResource("2")
 classname = "light"
 description = "Omnidirectional level light."
-class_properties = Dictionary[String, Variant]({"_color": Color(1, 0.9, 0.7, 1), "energy": 2.0, "range": 8.0, "shadow": true})
-class_property_descriptions = Dictionary[String, Variant]({"_color": "Light color.", "energy": "Godot light energy.", "range": "Range in metres.", "shadow": "Enable shadows."})
-meta_properties = Dictionary[String, Variant]({"color": Color(1, 0.9, 0.35, 1), "size": AABB(-8, -8, -8, 16, 16, 16)})
+class_properties = Dictionary[String, Variant]({
+"_color": Color(1, 0.9, 0.7, 1),
+"energy": 2.0,
+"range": 8.0,
+"shadow": true
+})
+class_property_descriptions = Dictionary[String, Variant]({
+"_color": "Light color.",
+"energy": "Godot light energy.",
+"range": "Range in metres.",
+"shadow": "Enable shadows."
+})
+meta_properties = Dictionary[String, Variant]({
+"color": Color(1, 0.9, 0.35, 1),
+"size": AABB(-8, -8, -8, 16, 16, 16)
+})

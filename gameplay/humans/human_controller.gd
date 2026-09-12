@@ -109,6 +109,7 @@ func _on_died(_instigator: Node) -> void:
 	add_to_group("corpses")
 	collision_layer = 0
 	collision_mask = 0
+	$CollisionShape3D.set_deferred("disabled", true)
 	state_indicator.visible = false
 	$HumanAnimationComponent.set_process(false)
 	ragdoll.activate(velocity)
