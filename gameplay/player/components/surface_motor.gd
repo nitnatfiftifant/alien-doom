@@ -4,19 +4,22 @@ extends Node
 @export var body: CharacterBody3D
 @export var camera_pivot: Node3D
 @export var adhesion_probe: RayCast3D
+@export var collision_shape: CollisionShape3D
+@export var contact_resolver: Node
+@export var frame_resolver: Node
 @export var run_speed := 8.0
 @export var sneak_speed := 3.0
 @export var acceleration := 28.0
 @export var gravity_strength := 22.0
 @export var orientation_speed := 16.0
 @export var air_orientation_speed := 14.0
-@export var surface_smoothing_speed := 8.0  # how fast smooth_up tracks surface_up
 @export var jump_impulse := 13.0
 @export var jump_forward_impulse := 0.0
 @export var air_acceleration := 14.0
 @export var air_max_speed := 12.0
 @export var stick_velocity := 3.5
 @export var probe_length := 1.1
+@export_flags_3d_physics var surface_collision_mask := 1
 @export_group("Contact timing")
 @export var coyote_time := 0.08
 @export var jump_recontact_delay := 0.2
@@ -25,6 +28,7 @@ extends Node
 @export var floor_snap_length := 0.4
 @export_group("Corner probing")
 @export var forward_probe_distance := 0.4
+@export_range(0.25, 1.0, 0.01) var forward_attachment_reach := 0.55
 @export var wrap_forward_offset := 0.65
 @export var wrap_down_offset := 0.55
 @export var wrap_back_distance := 1.15
@@ -32,16 +36,25 @@ extends Node
 @export var surface_normal_threshold := 0.85
 @export_range(0.0, 0.1, 0.0001) var collision_opposition_threshold := 0.001
 @export var strong_opposition_threshold := 0.7
+@export_range(0.1, 0.5, 0.01) var core_collision_radius := 0.24
+@export_group("Body contact manifold")
+@export_range(4, 12, 1) var body_contact_probe_count := 8
+@export_range(0.01, 0.25, 0.01) var body_contact_probe_distance := 0.08
+@export_range(0.0, 0.1, 0.005) var body_contact_inward_bias := 0.02
+@export_range(0.001, 0.1, 0.001) var body_contact_recovery_margin := 0.01
 @export_group("Landing")
 @export var landing_probe_distance := 0.4
 @export var floor_normal_threshold := 0.5
 @export var wall_landing_opposition := 0.4
 @export_range(-1.0, 1.0, 0.01) var jump_source_recontact_dot := 0.85
+@export var snap_visual_up_on_world_floor_landing := true
+@export_range(0.0, 1.0, 0.01) var bevel_floor_recovery_min_up := 0.05
 
 # surface_up   — authoritative physics normal (snaps immediately on transition)
 # smooth_up    — interpolated version for movement axes + orientation (slerps each frame)
 # Both are kept in sync while on a surface; smooth_up may lag behind during transitions.
 var surface_up := Vector3.UP
+var adhesion_up := Vector3.UP
 var smooth_up := Vector3.UP
 var surface_forward := Vector3.FORWARD
 var smooth_forward := Vector3.FORWARD
@@ -60,17 +73,28 @@ var recent_surface_history: Array[Vector3] = []
 var corner_dwell_timer := 0.0
 var jump_launch_timer := 0.0
 var camera_smoothing_offset := Vector3.ZERO
+var debug_probe_samples: Array[Dictionary] = []
 const CAMERA_BASE_POS := Vector3(0, 0.18, 0)
 
-func reset_orientation(facing: Vector3 = Vector3.FORWARD) -> void:
-	surface_up = Vector3.UP
-	smooth_up = Vector3.UP
-	previous_surface_up = Vector3.UP
-	jump_source_up = Vector3.UP
+func _ready() -> void:
+	if collision_shape != null and collision_shape.shape is SphereShape3D:
+		var sphere := collision_shape.shape.duplicate() as SphereShape3D
+		sphere.radius = core_collision_radius
+		collision_shape.shape = sphere
+
+func reset_orientation(facing: Vector3 = Vector3.FORWARD, up: Vector3 = Vector3.UP) -> void:
+	var norm := up.normalized()
+	if norm.is_zero_approx():
+		norm = Vector3.UP
+	surface_up = norm
+	adhesion_up = norm
+	smooth_up = norm
+	previous_surface_up = norm
+	jump_source_up = norm
 	opposite_transition_axis = Vector3.RIGHT
-	surface_forward = facing.slide(Vector3.UP).normalized()
+	surface_forward = facing.slide(norm).normalized()
 	if surface_forward.is_zero_approx():
-		surface_forward = Vector3.FORWARD
+		surface_forward = _perpendicular_to(norm)
 	smooth_forward = surface_forward
 	is_airborne = false
 	attached = true
@@ -83,15 +107,18 @@ func reset_orientation(facing: Vector3 = Vector3.FORWARD) -> void:
 	camera_smoothing_offset = Vector3.ZERO
 	if camera_pivot != null:
 		camera_pivot.position = CAMERA_BASE_POS
+	if frame_resolver != null:
+		frame_resolver.reset(norm)
 	recent_surface_history.clear()
 	if body != null:
 		body.velocity = Vector3.ZERO
-		body.up_direction = Vector3.UP
-		body.global_basis = Basis.looking_at(surface_forward, surface_up)
+		body.up_direction = norm
+		body.global_basis = Basis.looking_at(surface_forward, norm)
 
 func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, delta: float, floor_detach_pressed := false) -> void:
 	if body == null:
 		return
+	debug_probe_samples.clear()
 
 	transition_cooldown = maxf(0.0, transition_cooldown - delta)
 	jump_cooldown = maxf(0.0, jump_cooldown - delta)
@@ -102,24 +129,14 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 	if corner_dwell_timer <= 0.0:
 		recent_surface_history.clear()
 
-	# Smooth up: slerp toward authoritative surface_up each frame.
-	# Used for movement axes + orientation so the character feels continuous.
-	# surface_up itself stays exact for physics (up_direction, stick force, raycasts).
+	# SurfaceFrameResolver already changes the physical frame continuously. Keep
+	# one additional interpolation only in the body quaternion below; a second
+	# normal interpolator used to lag and twist the camera at corners.
 	if is_airborne:
-		# In air: smooth_up is handled inside _update_orientation alongside surface_up
 		smooth_up = surface_up
 	else:
-		var previous_smooth_up := smooth_up
-		var smoothing_weight := clampf(surface_smoothing_speed * delta, 0.0, 1.0)
-		smooth_up = _smooth_direction(smooth_up, surface_up, smoothing_weight, opposite_transition_axis)
-		# Rotate heading by the exact same incremental rotation as the smoothed
-		# surface normal. Projecting an already-final heading onto an intermediate
-		# plane twists the camera sideways at corners.
-		if previous_smooth_up.dot(smooth_up) < 0.999999:
-			var smooth_delta := Quaternion(previous_smooth_up, smooth_up)
-			var rotated_forward := (smooth_delta * smooth_forward).slide(smooth_up).normalized()
-			if not rotated_forward.is_zero_approx():
-				smooth_forward = rotated_forward
+		smooth_up = surface_up
+		smooth_forward = surface_forward
 
 	# 1. Handle Floor Detach (Key C)
 	if floor_detach_pressed and (attached or not is_airborne):
@@ -130,6 +147,7 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 		jump_cooldown = detach_recontact_delay
 		jump_launch_timer = 0.04
 		surface_up = Vector3.UP
+		adhesion_up = Vector3.UP
 		smooth_up = Vector3.UP
 		smooth_forward = surface_forward.slide(Vector3.UP).normalized()
 		previous_surface_up = Vector3.UP
@@ -154,7 +172,9 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 		jump_source_up = surface_up
 		var cam_3d_forward := -camera_pivot.global_basis.z
 		var cam_3d_right := camera_pivot.global_basis.x
-		var jump_dir := cam_3d_forward
+		# Without movement input the jump is purely away from the supporting
+		# surface. Camera pitch must not add an invisible forward impulse.
+		var jump_dir := surface_up
 		if not input_vector.is_zero_approx():
 			var input_cam_dir := (cam_3d_right * input_vector.x + cam_3d_forward * input_vector.y).normalized()
 			if not input_cam_dir.is_zero_approx():
@@ -178,9 +198,9 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 			if jump_dir.dot(surface_up) < 0.2:
 				jump_dir = (jump_dir.slide(surface_up).normalized() * 0.4 + surface_up * 0.85).normalized()
 
-		var inherited_tangent := body.velocity.slide(surface_up) * 0.5
+		var inherited_tangent := body.velocity.slide(surface_up) * 0.5 if not input_vector.is_zero_approx() else Vector3.ZERO
 		body.velocity = inherited_tangent + jump_dir * jump_impulse
-		if jump_forward_impulse > 0.0:
+		if jump_forward_impulse > 0.0 and not input_vector.is_zero_approx():
 			var forward_bias := surface_forward.slide(surface_up).normalized()
 			body.velocity += forward_bias * jump_forward_impulse
 		attached = false
@@ -191,20 +211,28 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 
 	# 4. Surface search and adherence
 	if not is_airborne and jump_cooldown <= 0.0:
-		var contact := _find_surface(desired)
+		var contact := _resolve_surface_frame(desired, delta)
 		if not contact.is_empty():
 			attached = true
 			coyote_timer = coyote_time
-			var new_normal: Vector3 = contact.normal.normalized()
-			if contact.get("is_wrap", false):
-				_apply_surface_transition(new_normal, true, contact.get("position", Vector3.ZERO))
-			elif contact.get("transitioned", false):
-				_apply_surface_transition(new_normal, false)
+			var pose_normal: Vector3 = contact.normal.normalized()
+			var physical_normal: Vector3 = (contact.get("adhesion_normal", pose_normal) as Vector3).normalized()
+			adhesion_up = physical_normal
+			var is_wrap: bool = bool(contact.get("is_wrap", false)) or String(contact.get("primary_source", "")) == "wrap"
+			var wrap_pos: Vector3 = contact.get("wrap_position", contact.get("position", Vector3.ZERO))
+
+			if is_wrap and physical_normal.dot(surface_up) < surface_normal_threshold:
+				_apply_surface_transition(physical_normal, true, wrap_pos)
 			else:
-				_align_surface_normal(new_normal)
+				_align_surface_normal(pose_normal)
+
+			smooth_up = surface_up
 		else:
-			attached = false
-			is_airborne = true
+			# A contact manifold can be empty for one physics frame while crossing
+			# a triangle seam. Consume coyote time instead of dropping the crawler.
+			if coyote_timer <= 0.0:
+				attached = false
+				is_airborne = true
 	elif is_airborne:
 		attached = false
 
@@ -216,14 +244,16 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 
 	# 6. Velocity computation & motion
 	var speed := (sneak_speed if sneaking else run_speed) * movement_multiplier
-	var attempted_surface_velocity := Vector3.ZERO
 	if attached:
-		var tangent_velocity := body.velocity.slide(surface_up)
-		tangent_velocity = tangent_velocity.move_toward(desired * speed, acceleration * delta)
-		var normal_velocity := -surface_up * stick_velocity
+		# Tangent motion and adhesion stick strictly to the single dominant physical
+		# face (adhesion_up), while orientation and camera follow the smoothly blended
+		# surface_up/smooth_up pose. This prevents wedging the sphere into corner seams.
+		var tangent_velocity := body.velocity.slide(adhesion_up)
+		var flat_desired := desired.slide(adhesion_up).normalized() if not desired.is_zero_approx() else Vector3.ZERO
+		tangent_velocity = tangent_velocity.move_toward(flat_desired * speed, acceleration * delta)
+		var normal_velocity := -adhesion_up * stick_velocity
 		body.velocity = tangent_velocity + normal_velocity
-		attempted_surface_velocity = body.velocity
-		body.up_direction = surface_up
+		body.up_direction = adhesion_up
 		body.floor_snap_length = floor_snap_length
 		body.move_and_slide()
 	else:
@@ -242,20 +272,112 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 		body.move_and_slide()
 
 	# 7. Post-move collision handling
-	if attached:
-		_adopt_slide_surface(desired, attempted_surface_velocity)
-	elif is_airborne:
+	if is_airborne:
 		_check_airborne_landing(desired)
+
+func _resolve_surface_frame(desired: Vector3, delta: float) -> Dictionary:
+	if frame_resolver == null:
+		return _find_surface(desired)
+	var candidates: Array[Dictionary] = []
+	var space := body.get_world_3d().direct_space_state
+	var origin := body.global_position
+	if not desired.is_zero_approx():
+		_add_ray_candidate(candidates, space, "movement_attach", "movement", origin, origin + desired.normalized() * forward_attachment_reach)
+	_add_ray_candidate(candidates, space, "surface_down", "down", origin, origin - surface_up * probe_length)
+	var probe_dir := desired if not desired.is_zero_approx() else surface_forward
+	_add_ray_candidate(candidates, space, "surface_forward", "forward_down", origin, origin + probe_dir * forward_probe_distance - surface_up * probe_length)
+	if wrap_protection_timer > 0.0:
+		var diagonal := (-previous_surface_up - surface_up).normalized()
+		_add_ray_candidate(candidates, space, "corner_diagonal", "diagonal", origin, origin + diagonal * probe_length)
+	var lateral := probe_dir.cross(surface_up).normalized()
+	var lateral_offsets: Array[float] = [0.0, -wrap_lateral_offset, wrap_lateral_offset]
+	for wrap_index in 3:
+		var lateral_offset: float = lateral_offsets[wrap_index]
+		var wrap_start: Vector3 = origin + probe_dir * wrap_forward_offset - surface_up * wrap_down_offset + lateral * lateral_offset
+		_add_ray_candidate(candidates, space, "corner_wrap_%d" % wrap_index, "wrap", wrap_start, wrap_start - probe_dir * wrap_back_distance)
+	_append_body_contact_candidates(candidates)
+	for index in body.get_slide_collision_count():
+		var collision := body.get_slide_collision(index)
+		var slide_candidate := {
+			"name": "slide_%d" % index, "source": "slide", "hit": true,
+			"position": collision.get_position(), "normal": collision.get_normal().normalized(),
+			"collider": collision.get_collider(),
+		}
+		candidates.append(slide_candidate)
+		_record_contact(slide_candidate.name, "body", slide_candidate.position, slide_candidate.normal, slide_candidate.collider)
+	if contact_resolver != null:
+		contact_resolver.call(&"sample_support", surface_up, surface_forward, desired)
+		for leg_contact in contact_resolver.call(&"get_contacts"):
+			var leg_candidate: Dictionary = leg_contact.duplicate(true)
+			leg_candidate["source"] = "leg"
+			leg_candidate["hit"] = true
+			candidates.append(leg_candidate)
+	return frame_resolver.resolve(surface_up, desired, origin, candidates, delta)
+
+func _append_body_contact_candidates(candidates: Array[Dictionary]) -> void:
+	var forward := surface_forward.slide(surface_up).normalized()
+	if forward.is_zero_approx():
+		forward = _perpendicular_to(surface_up)
+	var right := forward.cross(surface_up).normalized()
+	for probe_index in body_contact_probe_count:
+		var angle := TAU * float(probe_index) / float(body_contact_probe_count)
+		var radial := (forward * cos(angle) + right * sin(angle)).normalized()
+		var motion := radial * body_contact_probe_distance - surface_up * body_contact_inward_bias
+		var collision := body.move_and_collide(motion, true, body_contact_recovery_margin, true)
+		if collision == null:
+			continue
+		for contact_index in collision.get_collision_count():
+			var candidate := {
+				"name": "body_probe_%d_%d" % [probe_index, contact_index],
+				"source": "slide",
+				"hit": true,
+				"position": collision.get_position(contact_index),
+				"normal": collision.get_normal(contact_index).normalized(),
+				"collider": collision.get_collider(contact_index),
+			}
+			candidates.append(candidate)
+			_record_contact(candidate.name, "body", candidate.position, candidate.normal, candidate.collider)
+
+func _add_ray_candidate(candidates: Array[Dictionary], space: PhysicsDirectSpaceState3D, probe_name: String, source: String, start: Vector3, end: Vector3) -> void:
+	var query := PhysicsRayQueryParameters3D.create(start, end, surface_collision_mask)
+	query.exclude = [body]
+	var hit := space.intersect_ray(query)
+	_record_probe(probe_name, source, start, end, hit)
+	if hit.is_empty():
+		return
+	hit["name"] = probe_name
+	hit["source"] = source
+	hit["hit"] = true
+	candidates.append(hit)
 
 
 func _find_surface(desired: Vector3) -> Dictionary:
 	var space := body.get_world_3d().direct_space_state
 	var origin := body.global_position
+	# A crawler pressing into a face must adopt it immediately, even while the
+	# old floor is still a perfectly valid support. Previously the floor ray won
+	# first and the wall depended on a later slide collision/remaining velocity,
+	# which caused the reproducible "move away, then try again" dead spot.
+	if not desired.is_zero_approx() and transition_cooldown <= 0.0:
+		var attach_target := origin + desired.normalized() * forward_attachment_reach
+		var attach_query := PhysicsRayQueryParameters3D.create(origin, attach_target, surface_collision_mask)
+		attach_query.exclude = [body]
+		var attach_hit := space.intersect_ray(attach_query)
+		var adopt_attach := false
+		if not attach_hit.is_empty():
+			var attach_normal: Vector3 = (attach_hit.normal as Vector3).normalized()
+			adopt_attach = attach_normal.dot(surface_up) < surface_normal_threshold
+		_record_probe("movement_attach", "surface", origin, attach_target, attach_hit, adopt_attach)
+		if adopt_attach:
+			attach_hit["transitioned"] = true
+			attach_hit["is_wrap"] = false
+			return attach_hit
 
 	# 1. Primary downward ray along -surface_up
-	var down_query := PhysicsRayQueryParameters3D.create(origin, origin - surface_up * probe_length, 1)
+	var down_query := PhysicsRayQueryParameters3D.create(origin, origin - surface_up * probe_length, surface_collision_mask)
 	down_query.exclude = [body]
 	var down_hit := space.intersect_ray(down_query)
+	_record_probe("surface_down", "surface", origin, origin - surface_up * probe_length, down_hit)
 	if not down_hit.is_empty():
 		var hit_norm: Vector3 = down_hit.normal.normalized()
 		if hit_norm.dot(surface_up) < 0.98 and transition_cooldown <= 0.0:
@@ -271,6 +393,7 @@ func _find_surface(desired: Vector3) -> Dictionary:
 		var diag_query := PhysicsRayQueryParameters3D.create(origin, origin + corner_diag * probe_length, 1)
 		diag_query.exclude = [body]
 		var diag_hit := space.intersect_ray(diag_query)
+		_record_probe("corner_diagonal", "corner", origin, origin + corner_diag * probe_length, diag_hit)
 		if not diag_hit.is_empty():
 			diag_hit["transitioned"] = false
 			diag_hit["is_wrap"] = false
@@ -282,6 +405,7 @@ func _find_surface(desired: Vector3) -> Dictionary:
 	var forward_down_query := PhysicsRayQueryParameters3D.create(origin, forward_down_target, 1)
 	forward_down_query.exclude = [body]
 	var forward_down_hit := space.intersect_ray(forward_down_query)
+	_record_probe("surface_forward", "surface", origin, forward_down_target, forward_down_hit)
 	if not forward_down_hit.is_empty():
 		var hit_norm: Vector3 = forward_down_hit.normal.normalized()
 		if hit_norm.dot(surface_up) < 0.98 and transition_cooldown <= 0.0:
@@ -295,18 +419,30 @@ func _find_surface(desired: Vector3) -> Dictionary:
 	# Triggers when stepping off an edge into open space (both down probes missed)
 	var lateral := probe_dir.cross(surface_up).normalized()
 	var lateral_offsets: Array[float] = [0.0, -wrap_lateral_offset, wrap_lateral_offset]
-	for lateral_offset: float in lateral_offsets:
+	for wrap_index in lateral_offsets.size():
+		var lateral_offset: float = lateral_offsets[wrap_index]
 		var wrap_start: Vector3 = origin + probe_dir * wrap_forward_offset - surface_up * wrap_down_offset + lateral * lateral_offset
 		var wrap_target: Vector3 = wrap_start - probe_dir * wrap_back_distance
 		var wrap_query := PhysicsRayQueryParameters3D.create(wrap_start, wrap_target, 1)
 		wrap_query.exclude = [body]
 		var wrap_hit := space.intersect_ray(wrap_query)
+		_record_probe("corner_wrap_%d" % wrap_index, "corner", wrap_start, wrap_target, wrap_hit)
 		if not wrap_hit.is_empty():
 			var hit_norm: Vector3 = wrap_hit.normal.normalized()
 			if hit_norm.dot(surface_up) < surface_normal_threshold:
 				wrap_hit["transitioned"] = true
 				wrap_hit["is_wrap"] = true
 				return wrap_hit
+
+	# Last-resort support. Rear legs must not mask a valid convex wrap onto the
+	# next face, but may bridge a feature when all direct transition probes miss.
+	if contact_resolver != null:
+		var leg_hit: Dictionary = contact_resolver.call(&"sample_support", surface_up, surface_forward, desired)
+		if not leg_hit.is_empty():
+			var leg_normal: Vector3 = (leg_hit.normal as Vector3).normalized()
+			leg_hit["transitioned"] = leg_normal.dot(surface_up) < 0.98 and transition_cooldown <= 0.0
+			leg_hit["is_wrap"] = false
+			return leg_hit
 
 	return {}
 
@@ -317,7 +453,16 @@ func _adopt_slide_surface(desired: Vector3, attempted_velocity: Vector3) -> void
 	for index in body.get_slide_collision_count():
 		var collision := body.get_slide_collision(index)
 		var normal := collision.get_normal().normalized()
-		if normal.dot(surface_up) > surface_normal_threshold:
+		_record_contact("slide_%d" % index, "body", collision.get_position(), normal, collision.get_collider())
+		if normal.dot(surface_up) > 0.999:
+			continue
+		# When leaving a bevel/chamfer, the adhesion ray may keep seeing the old
+		# angled face even though the sphere is already supported by the flat floor.
+		# A real floor collision must finish that transition; otherwise surface_up
+		# and camera roll remain stuck on the bevel indefinitely.
+		if _is_bevel_to_world_floor_contact(normal):
+			best_normal = normal
+			strongest_opposition = INF
 			continue
 
 		# 1. Protect against immediately bouncing back across a convex corner that was just wrapped
@@ -347,12 +492,28 @@ func _adopt_slide_surface(desired: Vector3, attempted_velocity: Vector3) -> void
 	if best_normal.is_zero_approx():
 		return
 
-	_apply_surface_transition(best_normal, false)
+	if best_normal.dot(surface_up) > surface_normal_threshold:
+		_align_surface_normal(best_normal)
+	else:
+		_apply_surface_transition(best_normal, false)
 	body.velocity = body.velocity.slide(surface_up) - surface_up * stick_velocity
+
+func _is_bevel_to_world_floor_contact(contact_normal: Vector3) -> bool:
+	var current_world_up := surface_up.dot(Vector3.UP)
+	return (
+		contact_normal.dot(Vector3.UP) > floor_normal_threshold
+		and current_world_up > bevel_floor_recovery_min_up
+		and current_world_up < 0.999
+	)
 
 func _align_surface_normal(new_normal: Vector3) -> void:
 	var normalized_surface := new_normal.normalized()
-	if normalized_surface.is_zero_approx() or normalized_surface.dot(surface_up) > 0.999999:
+	if normalized_surface.is_zero_approx():
+		return
+	# This must happen before the physical-normal early return: surface_up can
+	# already equal the floor while smooth_up still contains the departed slope.
+	_sync_visual_world_floor(normalized_surface)
+	if normalized_surface.dot(surface_up) > 0.999999:
 		return
 	var alignment := _surface_rotation(surface_up, normalized_surface)
 	var aligned_forward := (alignment * surface_forward).slide(normalized_surface).normalized()
@@ -402,6 +563,7 @@ func _apply_surface_transition(new_normal: Vector3, is_wrap := false, wrap_pos :
 		transitioned_forward = fallback_forward.slide(surface_up).normalized()
 	if not transitioned_forward.is_zero_approx():
 		surface_forward = transitioned_forward
+	_sync_visual_world_floor(surface_up)
 
 	if is_wrap:
 		var wrap_forward := surface_forward
@@ -416,6 +578,7 @@ func _check_airborne_landing(_desired: Vector3) -> void:
 	for index in body.get_slide_collision_count():
 		var collision := body.get_slide_collision(index)
 		var normal := collision.get_normal().normalized()
+		_record_contact("landing_contact_%d" % index, "landing", collision.get_position(), normal, collision.get_collider())
 		if _is_blocked_jump_source(normal):
 			continue
 		_land_on_surface(normal)
@@ -430,6 +593,7 @@ func _check_airborne_landing(_desired: Vector3) -> void:
 		var landing_query := PhysicsRayQueryParameters3D.create(origin, origin + flight_dir * 0.5, 1)
 		landing_query.exclude = [body]
 		var landing_hit := space.intersect_ray(landing_query)
+		_record_probe("landing_flight", "landing", origin, origin + flight_dir * 0.5, landing_hit)
 		if not landing_hit.is_empty():
 			var normal: Vector3 = (landing_hit.normal as Vector3).normalized()
 			if vel.dot(normal) <= 0.5 and not _is_blocked_jump_source(normal):
@@ -440,6 +604,7 @@ func _check_airborne_landing(_desired: Vector3) -> void:
 	var ground_query := PhysicsRayQueryParameters3D.create(origin, origin + Vector3.DOWN * landing_probe_distance, 1)
 	ground_query.exclude = [body]
 	var ground_hit := space.intersect_ray(ground_query)
+	_record_probe("landing_ground", "landing", origin, origin + Vector3.DOWN * landing_probe_distance, ground_hit)
 	if not ground_hit.is_empty():
 		var normal: Vector3 = ground_hit.normal.normalized()
 		if normal.y > floor_normal_threshold and not _is_blocked_jump_source(normal):
@@ -452,6 +617,7 @@ func _land_on_surface(normal: Vector3) -> void:
 	var old_up := surface_up
 	previous_surface_up = old_up
 	surface_up = normal
+	adhesion_up = normal
 	is_airborne = false
 	attached = true
 	coyote_timer = coyote_time
@@ -461,6 +627,24 @@ func _land_on_surface(normal: Vector3) -> void:
 	var landed_forward := (landed_rotation * surface_forward).slide(surface_up).normalized()
 	if not landed_forward.is_zero_approx():
 		surface_forward = landed_forward
+	_sync_visual_world_floor(normal)
+	if frame_resolver != null:
+		frame_resolver.reset(normal)
+
+func _sync_visual_world_floor(normal: Vector3) -> void:
+	if not snap_visual_up_on_world_floor_landing or normal.dot(Vector3.UP) <= floor_normal_threshold:
+		return
+	# Rebuild a level frame instead of transporting the old one. Parallel
+	# transport preserves accumulated roll, which is exactly wrong after leaving
+	# a chain of convex wall/ceiling transitions and returning to world floor.
+	var level_forward := (-camera_pivot.global_basis.z).slide(normal).normalized() if camera_pivot != null else Vector3.ZERO
+	if level_forward.is_zero_approx():
+		level_forward = surface_forward.slide(normal).normalized()
+	if level_forward.is_zero_approx():
+		level_forward = _perpendicular_to(normal)
+	surface_forward = level_forward
+	smooth_forward = level_forward
+	smooth_up = normal
 
 func _surface_rotation(from_up: Vector3, to_up: Vector3) -> Quaternion:
 	if from_up.dot(to_up) > -0.999:
@@ -493,6 +677,7 @@ func _update_orientation(delta: float) -> void:
 		var look_query := PhysicsRayQueryParameters3D.create(origin, origin + cam_forward * 3.5, 1)
 		look_query.exclude = [body]
 		var look_hit := space.intersect_ray(look_query)
+		_record_probe("air_look", "air", origin, origin + cam_forward * 3.5, look_hit)
 
 		if not look_hit.is_empty():
 			var hit_norm: Vector3 = (look_hit.normal as Vector3).normalized()
@@ -517,6 +702,7 @@ func _update_orientation(delta: float) -> void:
 			var flight_query := PhysicsRayQueryParameters3D.create(origin, origin + flight_dir * reach_dist, 1)
 			flight_query.exclude = [body]
 			var flight_hit := space.intersect_ray(flight_query)
+			_record_probe("air_flight", "air", origin, origin + flight_dir * reach_dist, flight_hit)
 			if not flight_hit.is_empty():
 				var hit_norm: Vector3 = (flight_hit.normal as Vector3).normalized()
 				var dist: float = origin.distance_to(flight_hit.position)
@@ -536,6 +722,7 @@ func _update_orientation(delta: float) -> void:
 			var down_query := PhysicsRayQueryParameters3D.create(origin, origin + Vector3.DOWN * 2.5, 1)
 			down_query.exclude = [body]
 			var down_hit := space.intersect_ray(down_query)
+			_record_probe("air_down", "air", origin, origin + Vector3.DOWN * 2.5, down_hit)
 			if not down_hit.is_empty():
 				target_up = (down_hit.normal as Vector3).normalized()
 				var dist: float = origin.distance_to(down_hit.position)
@@ -567,6 +754,35 @@ func _update_orientation(delta: float) -> void:
 func _perpendicular_to(normal: Vector3) -> Vector3:
 	var axis := Vector3.UP if absf(normal.dot(Vector3.UP)) < 0.9 else Vector3.FORWARD
 	return axis.slide(normal).normalized()
+
+func get_debug_probe_samples() -> Array[Dictionary]:
+	return debug_probe_samples.duplicate(true)
+
+func _record_probe(probe_name: String, category: String, start: Vector3, end: Vector3, hit: Dictionary, selected := false) -> void:
+	debug_probe_samples.append({
+		"name": probe_name,
+		"category": category,
+		"start": start,
+		"end": end,
+		"hit": not hit.is_empty(),
+		"position": hit.get("position", end),
+		"normal": hit.get("normal", Vector3.ZERO),
+		"collider": hit.get("collider", null),
+		"selected": selected,
+	})
+
+func _record_contact(contact_name: String, category: String, position: Vector3, normal: Vector3, collider: Object) -> void:
+	debug_probe_samples.append({
+		"name": contact_name,
+		"category": category,
+		"start": body.global_position,
+		"end": position,
+		"hit": true,
+		"position": position,
+		"normal": normal,
+		"collider": collider,
+		"selected": false,
+	})
 
 func _smooth_direction(from_direction: Vector3, to_direction: Vector3, weight: float, fallback_axis: Vector3) -> Vector3:
 	var from_normal := from_direction.normalized()

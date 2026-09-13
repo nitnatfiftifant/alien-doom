@@ -13,6 +13,9 @@
 [ext_resource type="Script" uid="uid://b6hp4uuv0blq3" path="res://gameplay/player/components/ragdoll_pusher_component.gd" id="11"]
 [ext_resource type="Resource" uid="uid://sab2e2rp6sve" path="res://gameplay/player/resources/default_corpse_drag.tres" id="12"]
 [ext_resource type="PackedScene" path="res://ui/pause_menu.tscn" id="13"]
+[ext_resource type="Script" path="res://gameplay/player/components/surface_contact_resolver.gd" id="14"]
+[ext_resource type="Script" path="res://ui/surface_sensor_debug_panel.gd" id="15"]
+[ext_resource type="Script" path="res://gameplay/player/components/surface_frame_resolver.gd" id="16"]
 
 [sub_resource type="SphereShape3D" id="CreatureShape"]
 radius = 0.35
@@ -97,11 +100,21 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.45, -1.1)
 [node name="AdhesionProbe" type="RayCast3D" parent="." unique_id=2061955812]
 target_position = Vector3(0, -0.9, 0)
 
-[node name="SurfaceMotor" type="Node" parent="." unique_id=874027800 node_paths=PackedStringArray("body", "camera_pivot", "adhesion_probe")]
+[node name="SurfaceContactResolver" type="Node" parent="." node_paths=PackedStringArray("body")]
+script = ExtResource("14")
+body = NodePath("..")
+
+[node name="SurfaceFrameResolver" type="Node" parent="."]
+script = ExtResource("16")
+
+[node name="SurfaceMotor" type="Node" parent="." unique_id=874027800 node_paths=PackedStringArray("body", "camera_pivot", "adhesion_probe", "collision_shape", "contact_resolver", "frame_resolver")]
 script = ExtResource("2")
 body = NodePath("..")
 camera_pivot = NodePath("../CameraPivot")
 adhesion_probe = NodePath("../AdhesionProbe")
+collision_shape = NodePath("../CollisionShape3D")
+contact_resolver = NodePath("../SurfaceContactResolver")
+frame_resolver = NodePath("../SurfaceFrameResolver")
 
 [node name="CreatureAbilities" type="Node" parent="." unique_id=1227122409 node_paths=PackedStringArray("camera", "bite_visual")]
 script = ExtResource("3")
@@ -158,7 +171,35 @@ text = "КИСЛОТА: ГОТОВА"
 [node name="Help" type="Label" parent="CreatureHud/Margin/VBox" unique_id=505790303]
 layout_mode = 2
 text = "WASD бег | Shift скрытность | Space прыжок | C на пол
-ЛКМ укус | ПКМ кислота | E взаимодействие/труп"
+ЛКМ укус | ПКМ кислота | E взаимодействие/труп | F3 датчики"
+
+[node name="SensorDebugPanel" type="Control" parent="CreatureHud" node_paths=PackedStringArray("motor", "contact_resolver", "view_camera", "adhesion_probe")]
+layout_mode = 3
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -535.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = 592.0
+grow_horizontal = 0
+mouse_filter = 2
+script = ExtResource("15")
+motor = NodePath("../../SurfaceMotor")
+contact_resolver = NodePath("../../SurfaceContactResolver")
+view_camera = NodePath("../../CameraPivot/Camera3D")
+adhesion_probe = NodePath("../../AdhesionProbe")
+
+[node name="Details" type="Label" parent="CreatureHud/SensorDebugPanel"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 310.0
+offset_right = 507.0
+offset_bottom = 564.0
+theme_override_colors/font_color = Color(0.88, 0.93, 0.96, 1)
+theme_override_font_sizes/font_size = 12
+text = "ПОПАДАНИЯ:"
+autowrap_mode = 2
 
 [node name="PauseMenu" parent="." unique_id=977187505 node_paths=PackedStringArray("creature") instance=ExtResource("13")]
 creature = NodePath("..")

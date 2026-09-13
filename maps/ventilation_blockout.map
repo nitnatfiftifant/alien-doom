@@ -1116,7 +1116,7 @@
 // entity 9
 {
 "classname" "info_alien_start"
-"origin" "-552 192 16"
+"origin" "-1288 2288 112"
 "targetname" "player_start"
 "ceiling_spawn" "0"
 "_tb_layer" "3"

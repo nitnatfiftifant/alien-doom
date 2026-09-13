@@ -14,16 +14,21 @@ func run() -> void:
 	var humans := get_nodes_in_group("humans")
 	var nest := get_first_node_in_group("creature_nest") as CreatureNest
 	assert(creature != null, "Creature was not spawned from info_alien_start")
+	var sensor_panel := creature.get_node("CreatureHud/SensorDebugPanel") as SurfaceSensorDebugPanel
+	assert(sensor_panel != null, "Surface sensor debug panel is missing from HUD")
+	assert(sensor_panel.motor == creature.motor and sensor_panel.view_camera == creature.get_node("CameraPivot/Camera3D"), "Surface sensor debug dependencies are not wired")
+	sensor_panel._collect_samples()
+	assert(sensor_panel.get_samples().size() >= 10, "Sensor panel does not expose legs, motor probes and adhesion ray")
 	var pause_menu := creature.get_node("PauseMenu")
 	assert(pause_menu != null and pause_menu.slider.min_value == pause_menu.minimum_sensitivity, "Pause menu mouse sensitivity control is not configured")
 	pause_menu.pause()
 	assert(paused and pause_menu.overlay.visible, "Pause menu did not pause the scene tree")
 	pause_menu.resume()
 	assert(not paused and not pause_menu.overlay.visible, "Pause menu did not resume the scene tree")
-	assert(creature.run_speed == 8.0 and creature.jump_impulse == 13.0 and creature.jump_forward_impulse == 0.0 and creature.gravity_strength == 32.0, "CreatureController movement export defaults missing")
+	assert(creature.run_speed == 4.0 and creature.jump_impulse == 6.5 and creature.jump_forward_impulse == 0.0 and creature.gravity_strength == 16.0, "CreatureController movement scene values missing")
 	creature.run_speed = 11.0
 	assert(creature.motor.run_speed == 11.0, "Changing CreatureController exported run_speed did not sync to motor")
-	creature.run_speed = 8.0
+	creature.run_speed = 4.0
 	assert(InputMap.has_action(&"jump") and InputMap.has_action(&"floor_detach"), "InputMap is missing jump or floor_detach actions")
 	for action_name in [&"jump", &"floor_detach", &"move_forward", &"bite", &"acid", &"interact"]:
 		var events := InputMap.action_get_events(action_name)
