@@ -7,6 +7,9 @@ extends Node
 @export var pistol_scale := 0.1
 @export var pistol_position := Vector3(0.02, -0.02, 0.0)
 @export var pistol_rotation_degrees := Vector3(0.0, 90.0, 0.0)
+@export_group("Visibility")
+@export_range(0.0, 100.0, 0.5, "or_greater") var extra_cull_margin := 5.0
+@export var ignore_occlusion_culling := true
 
 var weapon_instance: Node3D
 
@@ -34,3 +37,7 @@ func _attach_guard_weapon() -> void:
 	weapon_instance.position = pistol_position
 	weapon_instance.rotation_degrees = pistol_rotation_degrees
 	weapon_instance.scale = Vector3.ONE * pistol_scale
+	for descendant in weapon_instance.find_children("*", "GeometryInstance3D", true, false):
+		var geometry := descendant as GeometryInstance3D
+		geometry.extra_cull_margin = extra_cull_margin
+		geometry.ignore_occlusion_culling = ignore_occlusion_culling

@@ -2,9 +2,10 @@ class_name HumanController
 extends CharacterBody3D
 
 @export_enum("Worker", "Guard", "Engineer") var role := "Worker"
-@export var move_speed := 3.2
 @export var targetname := ""
+@export var patrol_id := ""
 @export var vitality_config: HumanVitalityConfig
+@export var ai_config: HumanAIConfig
 @onready var stress: StressComponent = $StressComponent
 @onready var perception: PerceptionComponent = $PerceptionComponent
 @onready var navigation: NavigationAgent3D = $NavigationAgent3D
@@ -13,11 +14,17 @@ extends CharacterBody3D
 @onready var combat: RangedCombatComponent = $RangedCombatComponent
 @onready var state_indicator: MeshInstance3D = $StateIndicator
 @onready var ragdoll: HumanRagdollComponent = $HumanRagdollComponent
-var last_stimulus_position := Vector3.ZERO
+@onready var awareness: HumanAwarenessMemory = $HumanAwarenessMemory
+var _map_properties: Dictionary = {}
+var _has_unique_ai_config := false
 
 func _func_godot_apply_properties(properties: Dictionary) -> void:
+	_map_properties = properties.duplicate()
 	role = str(properties.get("role", role))
 	targetname = str(properties.get("targetname", targetname))
+	patrol_id = str(properties.get("patrol_id", patrol_id))
+	if is_node_ready():
+		_apply_map_ai_properties()
 
 func _ready() -> void:
 	add_to_group("humans")
@@ -27,18 +34,43 @@ func _ready() -> void:
 	health.died.connect(_on_died)
 	stress.state_changed.connect(_on_stress_state_changed)
 	stress.state_changed.connect(_update_state_color)
+	_apply_map_ai_properties()
 	_update_state_color(StressComponent.State.CALM, StressComponent.State.CALM)
+
+func _apply_map_ai_properties() -> void:
+	if ai_config == null or _map_properties.is_empty():
+		return
+	if not _has_unique_ai_config:
+		ai_config = ai_config.duplicate(true) as HumanAIConfig
+		_has_unique_ai_config = true
+	ai_config.move_speed = _map_float(&"ai_move_speed", ai_config.move_speed)
+	ai_config.acceleration = _map_float(&"ai_acceleration", ai_config.acceleration)
+	ai_config.turn_speed = _map_float(&"ai_turn_speed", ai_config.turn_speed)
+	ai_config.search_duration = _map_float(&"search_duration", ai_config.search_duration)
+	ai_config.search_radius = _map_float(&"search_radius", ai_config.search_radius)
+	ai_config.flee_distance = _map_float(&"flee_distance", ai_config.flee_distance)
+	ai_config.stress_share_radius = _map_float(&"stress_share_radius", ai_config.stress_share_radius)
+	perception.direct_view_distance = _map_float(&"direct_view_distance", perception.direct_view_distance)
+	perception.peripheral_distance = _map_float(&"peripheral_distance", perception.peripheral_distance)
+	perception.touch_distance = _map_float(&"touch_distance", perception.touch_distance)
+	perception.hearing_distance = _map_float(&"hearing_distance", perception.hearing_distance)
+	perception.direct_half_angle = _map_float(&"direct_half_angle", perception.direct_half_angle)
+	perception.peripheral_half_angle = _map_float(&"peripheral_half_angle", perception.peripheral_half_angle)
+	stress.decay_delay = _map_float(&"stress_decay_delay", stress.decay_delay)
+	stress.alert_to_calm_seconds = _map_float(&"stress_recovery_seconds", stress.alert_to_calm_seconds)
+
+func _map_float(property: StringName, fallback: float) -> float:
+	return float(_map_properties.get(property, fallback))
 
 func _physics_process(delta: float) -> void:
 	stress.tick(delta)
-	var creature := get_tree().get_first_node_in_group("creature") as Node3D
-	perception.evaluate_target(creature, delta)
+	awareness.tick(delta)
+	var creature := get_tree().get_first_node_in_group("creature") as CreatureController
 	for corpse in get_tree().get_nodes_in_group("corpses"):
 		perception.evaluate_target(corpse as Node3D, delta, true)
+	awareness.track_creature(creature, perception.evaluate_target(creature, delta))
 	_share_stress()
 	state_machine.physics_update(delta)
-	if role == "Guard" and stress.state == StressComponent.State.ALERT:
-		combat.tick(creature as CreatureController, delta)
 	if not is_on_floor():
 		velocity.y -= 24.0 * delta
 	else:
@@ -46,43 +78,63 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 func _on_stimulus(position: Vector3, strength: float, is_corpse: bool) -> void:
-	last_stimulus_position = position
-	stress.add_stress(strength)
+	awareness.remember_stimulus(position, is_corpse)
 	if is_corpse:
-		stress.cap_stress(74.9)
+		stress.add_stress_capped(strength, 74.9)
+	else:
+		stress.add_stress(strength)
 
 func _share_stress() -> void:
-	if stress.state < StressComponent.State.POST_ALERT:
+	if stress.state < StressComponent.State.POST_ALERT or ai_config == null:
 		return
 	for human in get_tree().get_nodes_in_group("humans"):
-		if human != self and global_position.distance_to(human.global_position) <= 8.0:
+		if human != self and global_position.distance_to(human.global_position) <= ai_config.stress_share_radius:
 			human.stress.synchronize_upwards(stress.value)
 
 func navigate_to_last_stimulus(flee: bool) -> void:
-	navigation.target_position = global_position - (last_stimulus_position - global_position) if flee else last_stimulus_position
+	if flee:
+		var away := global_position - awareness.last_known_position
+		away.y = 0.0
+		if away.is_zero_approx():
+			away = global_basis.z
+		navigation.target_position = global_position + away.normalized() * ai_config.flee_distance
+	else:
+		navigation.target_position = awareness.last_known_position
 
-func follow_navigation(flee: bool) -> void:
-	navigation.target_position = last_stimulus_position
-	var next_position := last_stimulus_position
+func follow_navigation(_flee := false, delta := 1.0 / 60.0) -> void:
+	var next_position := navigation.target_position
 	if navigation.get_navigation_map().is_valid() and not navigation.is_navigation_finished():
 		next_position = navigation.get_next_path_position()
 	var direction := next_position - global_position
 	direction.y = 0.0
 	direction = direction.normalized()
 	if direction.is_zero_approx():
-		direction = last_stimulus_position - global_position
+		direction = awareness.last_known_position - global_position
 		direction.y = 0.0
 		direction = direction.normalized()
-	if flee:
-		direction = -direction
-	velocity.x = direction.x * move_speed
-	velocity.z = direction.z * move_speed
-	look_at(global_position + direction, Vector3.UP)
+	var desired: Vector3 = direction * float(ai_config.move_speed)
+	velocity.x = move_toward(velocity.x, desired.x, ai_config.acceleration * delta)
+	velocity.z = move_toward(velocity.z, desired.z, ai_config.acceleration * delta)
+	if not direction.is_zero_approx():
+		var desired_basis := Basis.looking_at(direction, Vector3.UP)
+		global_basis = global_basis.slerp(desired_basis, clampf(ai_config.turn_speed * delta, 0.0, 1.0)).orthonormalized()
 	_try_open_door(direction)
 
+func has_reached_navigation_target() -> bool:
+	return global_position.distance_to(navigation.target_position) <= ai_config.arrival_distance
+
+func face_position(position: Vector3, delta: float) -> void:
+	var direction := position - global_position
+	direction.y = 0.0
+	if direction.is_zero_approx():
+		return
+	var desired_basis := Basis.looking_at(direction.normalized(), Vector3.UP)
+	global_basis = global_basis.slerp(desired_basis, clampf(ai_config.turn_speed * delta, 0.0, 1.0)).orthonormalized()
+
 func slow_down() -> void:
-	velocity.x = move_toward(velocity.x, 0.0, 0.3)
-	velocity.z = move_toward(velocity.z, 0.0, 0.3)
+	var step: float = float(ai_config.acceleration) / 60.0 if ai_config != null else 0.3
+	velocity.x = move_toward(velocity.x, 0.0, step)
+	velocity.z = move_toward(velocity.z, 0.0, step)
 
 func _on_stress_state_changed(_previous: StressComponent.State, current: StressComponent.State) -> void:
 	state_machine.transition_to(current)

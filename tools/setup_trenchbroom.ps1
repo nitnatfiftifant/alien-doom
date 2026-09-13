@@ -2,11 +2,13 @@
 # Automates connecting Alien Doom (Godot) with TrenchBroom.
 
 $ErrorActionPreference = 'Stop'
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 
 Write-Host "=== Setting up TrenchBroom for Alien Doom ===" -ForegroundColor Cyan
 
 # 1. Locate Godot
 $godotCandidates = @(
+	'C:\Users\nit\Downloads\Godot_v4.8-dev5_win64.exe\Godot_v4.8-dev5_win64_console.exe',
     'D:\BeProgrammer\Godot_Engine_Experimental\Godot_v4.8-dev5_win64.exe',
     'C:\Users\HP\Downloads\Godot_v4.8-dev5_win64.exe\Godot_v4.8-dev5_win64_console.exe',
     'C:\Users\HP\Downloads\Godot_v4.8-dev5_win64.exe'
@@ -24,6 +26,7 @@ Write-Host "[+] Found Godot: $godot" -ForegroundColor Green
 
 # 2. Locate TrenchBroom
 $tbCandidates = @(
+	'C:\Users\nit\Documents\TrenchBroom-Win64-AMD64-v2026.2-Release\TrenchBroom.exe',
     'D:\BeProgrammer\TrenchBroom\TrenchBroom.exe',
     'C:\Program Files\TrenchBroom\TrenchBroom.exe'
 )
@@ -67,7 +70,7 @@ if (Test-Path $prefFile) {
 $prefs['Games/Alien Doom/Path'] = $projectDir
 $prefs['Games/Alien Doom/Default Engine'] = 'Godot'
 $prefsJson = $prefs | ConvertTo-Json -Depth 10
-[System.IO.File]::WriteAllText($prefFile, $prefsJson, [System.Text.Encoding]::UTF8)
+[System.IO.File]::WriteAllText($prefFile, $prefsJson, $utf8NoBom)
 Write-Host "[+] Updated TrenchBroom Preferences: Games/Alien Doom/Path -> $projectDir" -ForegroundColor Green
 
 # 5. Create GameEngineProfiles.cfg
@@ -92,7 +95,7 @@ foreach ($dir in $targetGamesDirs) {
         New-Item -ItemType Directory -Path $dir -Force | Out-Null
     }
     $engineFile = Join-Path $dir 'GameEngineProfiles.cfg'
-    [System.IO.File]::WriteAllText($engineFile, $engineJson, [System.Text.Encoding]::UTF8)
+    [System.IO.File]::WriteAllText($engineFile, $engineJson, $utf8NoBom)
 }
 Write-Host "[+] Configured GameEngineProfiles.cfg (launch Godot straight from TrenchBroom)" -ForegroundColor Green
 
@@ -107,7 +110,7 @@ if (-not (Test-Path $localConfigPath)) {
 [resource]
 script = ExtResource("1_g8kqj")
 "@
-    [System.IO.File]::WriteAllText($localConfigPath, $template, [System.Text.Encoding]::UTF8)
+    [System.IO.File]::WriteAllText($localConfigPath, $template, $utf8NoBom)
     Write-Host "[+] Recreated func_godot_local_config.tres template" -ForegroundColor Green
 }
 

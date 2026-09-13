@@ -22,6 +22,8 @@
 [ext_resource type="Script" uid="uid://cja364vsv8c3d" path="res://gameplay/humans/components/substates/flee_behavior.gd" id="20"]
 [ext_resource type="Script" uid="uid://cw0v32ltljqfu" path="res://gameplay/humans/components/substates/combat_behavior.gd" id="21"]
 [ext_resource type="Script" uid="uid://dnuq0jpouq060" path="res://gameplay/humans/components/human_ragdoll_component.gd" id="22"]
+[ext_resource type="Resource" path="res://gameplay/humans/resources/default_human_ai.tres" id="23"]
+[ext_resource type="Script" path="res://gameplay/humans/components/human_awareness_memory.gd" id="24"]
 
 [sub_resource type="CapsuleShape3D" id="HumanShape"]
 height = 2.25
@@ -41,6 +43,7 @@ collision_layer = 4
 collision_mask = 27
 script = ExtResource("1")
 vitality_config = ExtResource("11")
+ai_config = ExtResource("23")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1528627288]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.125, 0)
@@ -66,6 +69,9 @@ path_height_offset = 1.0
 
 [node name="StressComponent" type="Node" parent="." unique_id=1166636417]
 script = ExtResource("2")
+
+[node name="HumanAwarenessMemory" type="Node" parent="."]
+script = ExtResource("24")
 
 [node name="PerceptionComponent" type="Node3D" parent="." unique_id=1679562453 node_paths=PackedStringArray("owner_body")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.65, 0)

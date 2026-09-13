@@ -6,7 +6,11 @@ func _init() -> void:
 	if not appdata.is_empty():
 		target_directories.append(appdata.path_join("TrenchBroom/games/AlienDoom"))
 	
-	for candidate: String in ["D:/BeProgrammer/TrenchBroom/games/AlienDoom", "C:/Program Files/TrenchBroom/games/AlienDoom"]:
+	for candidate: String in [
+		"C:/Users/nit/Documents/TrenchBroom-Win64-AMD64-v2026.2-Release/games/AlienDoom",
+		"D:/BeProgrammer/TrenchBroom/games/AlienDoom",
+		"C:/Program Files/TrenchBroom/games/AlienDoom",
+	]:
 		var parent_dir: String = candidate.get_base_dir().get_base_dir()
 		if DirAccess.dir_exists_absolute(parent_dir) and not target_directories.has(candidate):
 			target_directories.append(candidate)

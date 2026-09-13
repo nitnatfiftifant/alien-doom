@@ -13,13 +13,44 @@ description = "Worker or guard spawn marker."
 base_classes = Array[Resource]([ExtResource("3")])
 class_properties = Dictionary[String, Variant]({
 "angles": Vector3(0, 0, 0),
+"ai_acceleration": 10.0,
+"ai_move_speed": 3.2,
+"ai_turn_speed": 8.0,
+"direct_half_angle": 25.0,
+"direct_view_distance": 14.0,
+"flee_distance": 10.0,
+"hearing_distance": 18.0,
 "patrol_id": "",
-"role": "Worker"
+"peripheral_distance": 8.0,
+"peripheral_half_angle": 90.0,
+"role": "Worker",
+"search_duration": 8.0,
+"search_radius": 4.0,
+"stress_decay_delay": 15.0,
+"stress_recovery_seconds": 60.0,
+"stress_share_radius": 8.0,
+"touch_distance": 1.2
 })
 class_property_descriptions = Dictionary[String, Variant]({
+"angles": "Facing rotation: pitch yaw roll. Use TrenchBroom Rotate Tool; the orange arrow on the model points forward.",
+"ai_acceleration": "Movement acceleration in metres per second squared.",
+"ai_move_speed": "Navigation movement speed in metres per second.",
+"ai_turn_speed": "Body turn interpolation speed.",
+"direct_half_angle": "Half-angle of the focused vision cone in degrees.",
+"direct_view_distance": "Focused vision range in metres.",
+"flee_distance": "Distance in metres a civilian tries to create from a threat.",
+"hearing_distance": "Base hearing radius in metres at loudness 1.",
 "patrol_id": "Patrol route identifier.",
+"peripheral_distance": "Peripheral vision range in metres.",
+"peripheral_half_angle": "Half-angle of the peripheral vision cone in degrees.",
 "role": "Worker, Guard, or Engineer.",
-"targetname": "Stable designer identifier."
+"search_duration": "Seconds spent actively searching the last known area.",
+"search_radius": "Search radius around the last known position in metres.",
+"stress_decay_delay": "Seconds without stimuli before stress starts decreasing.",
+"stress_recovery_seconds": "Approximate seconds to decay from full alert to calm.",
+"stress_share_radius": "Radius in metres for sharing elevated stress with humans.",
+"targetname": "Stable designer identifier.",
+"touch_distance": "Close-contact awareness radius in metres."
 })
 meta_properties = Dictionary[String, Variant]({
 "color": Color(1, 0.55, 0.15, 1),

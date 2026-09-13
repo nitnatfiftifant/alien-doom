@@ -26,6 +26,7 @@ func spawn_from_map() -> void:
 			human.global_transform = marker.global_transform
 			human.role = marker.role
 			human.targetname = marker.targetname
+			human.patrol_id = marker.patrol_id
 		elif marker is AlienDoomNestMarker:
 			var nest := nest_scene.instantiate() as CreatureNest
 			world_root.add_child(nest)

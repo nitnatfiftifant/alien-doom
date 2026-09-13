@@ -35,7 +35,7 @@ func run() -> void:
 		assert(not events.is_empty(), "InputMap action %s has no assigned events" % action_name)
 		for ev in events:
 			assert(ev.device == -1, "InputEvent for %s has invalid device id %d (must be -1)" % [action_name, ev.device])
-	assert(humans.size() == 2, "Both worker and guard must spawn from TrenchBroom markers")
+	assert(not humans.is_empty(), "At least one human must spawn from the current TrenchBroom markers")
 	assert(nest != null, "Nest was not spawned from info_nest")
 	var human := humans[0] as HumanController
 	var guard: HumanController
@@ -52,7 +52,7 @@ func run() -> void:
 	assert(human.state_machine.current != null)
 	var animator := human.get_node("HumanAnimationComponent") as HumanAnimationComponent
 	assert(animator.animation_player != null, "Human test model or its AnimationPlayer is missing")
-	for geometry in human.get_node("VisualRoot").find_children("*", "GeometryInstance3D", true, false):
+	for geometry in human.get_node("VisualRoot/AnimatedModel").find_children("*", "GeometryInstance3D", true, false):
 		assert((geometry as GeometryInstance3D).extra_cull_margin >= 5.0 and (geometry as GeometryInstance3D).ignore_occlusion_culling, "Human skinned mesh can disappear due to culling")
 	assert(animator.animation_player.has_animation(&"Idle") and animator.animation_player.has_animation(&"Walk") and animator.animation_player.has_animation(&"Death01"), "Required human animation set is incomplete")
 	human.stress.add_stress(80.0)

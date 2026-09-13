@@ -955,22 +955,13 @@
 // entity 6
 {
 "classname" "info_human_spawn"
-"origin" "32 -48 32"
-"targetname" "worker_01"
-"role" "Worker"
-"patrol_id" "patrol_a"
-"_tb_layer" "1"
-}
-// entity 7
-{
-"classname" "info_human_spawn"
-"origin" "-176 144 32"
+"origin" "96 -144 32"
 "targetname" "guard_01"
 "role" "Guard"
 "patrol_id" "patrol_a"
 "_tb_layer" "1"
 }
-// entity 8
+// entity 7
 {
 "classname" "func_group"
 "_tb_type" "_tb_layer"
@@ -1113,15 +1104,15 @@
 ( -336 240 208 ) ( -336 240 192 ) ( -336 224 208 ) Bricks/DUNGEONBRICKS [ 0 1 0 0 ] [ 0 0 -1 0 ] 270 1 1
 }
 }
-// entity 9
+// entity 8
 {
 "classname" "info_alien_start"
-"origin" "-1288 2288 112"
+"origin" "-504 176 16"
 "targetname" "player_start"
 "ceiling_spawn" "0"
 "_tb_layer" "3"
 }
-// entity 10
+// entity 9
 {
 "classname" "info_nest"
 "origin" "-512 96 16"
@@ -1129,7 +1120,7 @@
 "capacity" "4"
 "_tb_layer" "3"
 }
-// entity 11
+// entity 10
 {
 "classname" "func_group"
 "_tb_type" "_tb_layer"
@@ -2010,7 +2001,7 @@
 ( -1696 2304 96 ) ( -1696 2272 96 ) ( -1728 2272 128 ) Elements/RAPIDS [ 0.7071067811865476 0 -0.7071067811865476 0 ] [ 0 -1 0 0 ] 0 1 1
 }
 }
-// entity 12
+// entity 11
 {
 "classname" "info_nest"
 "capacity" "4"

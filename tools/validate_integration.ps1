@@ -23,6 +23,7 @@ $project = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $scripts = @(
     'res://tools/validate_integration.gd',
     'res://tests/mvp_smoke_test.gd',
+    'res://tests/human_hfsm_test.gd',
     'res://tests/surface_and_perception_test.gd',
     'res://tests/acid_and_ragdoll_test.gd'
 )

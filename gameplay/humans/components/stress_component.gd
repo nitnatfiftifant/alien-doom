@@ -20,6 +20,14 @@ func add_stress(amount: float) -> void:
 	_update_state()
 	stress_changed.emit(value)
 
+func add_stress_capped(amount: float, maximum: float) -> void:
+	if amount <= 0.0:
+		return
+	value = clampf(value + amount, 0.0, maximum)
+	time_since_stimulus = 0.0
+	_update_state()
+	stress_changed.emit(value)
+
 func cap_stress(maximum: float) -> void:
 	value = minf(value, maximum)
 	_update_state()
@@ -48,4 +56,3 @@ func _update_state() -> void:
 		var previous := state
 		state = next
 		state_changed.emit(previous, state)
-
