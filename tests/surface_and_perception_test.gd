@@ -89,6 +89,25 @@ func run() -> void:
 	assert(creature.motor.attached and creature.motor.surface_up.dot(Vector3.DOWN) > 0.8, "Creature did not maintain attachment while crawling on ceiling")
 	assert(creature.global_position.y > 4.35, "Creature fell from ceiling during crawl")
 
+	# A no-climb wall remains a physical blocker when approached from a ceiling.
+	_add_no_climb_box(root, Vector3(3.0, 2.5, -1.0), Vector3(1.0, 5.0, 0.25))
+	creature.position = Vector3(3.0, 4.38, 0.0)
+	creature.velocity = Vector3.ZERO
+	creature.global_basis = Basis.IDENTITY
+	creature.motor.reset_orientation(Vector3.FORWARD, Vector3.DOWN)
+	var no_climb_forced_fall := false
+	var no_climb_outward_speed := 0.0
+	for no_climb_step in 60:
+		creature.motor.physics_step(Vector2(0, 1), false, false, 1.0 / 60.0)
+		await physics_frame
+		if creature.motor.floor_detach_active:
+			no_climb_forced_fall = true
+			no_climb_outward_speed = creature.velocity.dot(Vector3.BACK)
+			break
+	assert(creature.global_position.z > -0.7, "Creature was pushed through a no-climb wall while leaving a ceiling")
+	assert(no_climb_forced_fall and creature.motor.is_airborne, "No-climb wall did not release ceiling adhesion")
+	assert(no_climb_outward_speed < 0.1, "No-climb wall bounced the creature instead of releasing it")
+
 	# A stationary jump is purely normal to its support, including on a ceiling.
 	creature.position = Vector3(0, 4.38, 0)
 	creature.velocity = Vector3.ZERO
@@ -358,3 +377,14 @@ func _test_no_climb_material_policy(parent: Node3D, policy: SurfaceClimbPolicy) 
 		"collision_shape_to_face_indices_map": {String(collision.name): PackedInt32Array([0])},
 	})
 	assert(policy.is_contact_climbable(body, shape_index, body.global_position, Vector3.UP, 1), "Ordinary material face became non-climbable")
+
+func _add_no_climb_box(parent: Node3D, position: Vector3, size: Vector3) -> void:
+	var body := StaticBody3D.new()
+	body.position = position
+	body.set_meta(&"no_climb", true)
+	var collision := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = size
+	collision.shape = shape
+	body.add_child(collision)
+	parent.add_child(body)

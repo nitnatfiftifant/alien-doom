@@ -21,11 +21,17 @@ func is_contact_climbable(collider: Object, shape_index: int, world_position: Ve
 	var collision_object := collider as CollisionObject3D
 	if collision_object == null or (collision_object.collision_layer & collision_mask) == 0:
 		return false
-	if collision_object.get_meta(&"no_climb", false):
+	return not is_contact_no_climb(collider, shape_index, world_position, world_normal)
+
+func is_contact_no_climb(collider: Object, shape_index: int, world_position: Vector3, world_normal: Vector3) -> bool:
+	var collision_object := collider as CollisionObject3D
+	if collision_object == null:
 		return false
-	if shape_index < 0 or not collision_object.has_meta(&"func_godot_mesh_data"):
+	if collision_object.get_meta(&"no_climb", false):
 		return true
-	return not _func_godot_face_has_no_climb(collision_object, shape_index, world_position, world_normal)
+	if shape_index < 0 or not collision_object.has_meta(&"func_godot_mesh_data"):
+		return false
+	return _func_godot_face_has_no_climb(collision_object, shape_index, world_position, world_normal)
 
 func _func_godot_face_has_no_climb(collider: CollisionObject3D, shape_index: int, world_position: Vector3, world_normal: Vector3) -> bool:
 	var data: Dictionary = collider.get_meta(&"func_godot_mesh_data", {})

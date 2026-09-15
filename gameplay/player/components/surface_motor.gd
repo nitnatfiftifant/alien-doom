@@ -266,6 +266,7 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 		body.up_direction = adhesion_up
 		body.floor_snap_length = floor_snap_length
 		body.move_and_slide()
+		_detach_on_no_climb_contact()
 	else:
 		# Airborne: apply air steering relative to camera view and gravity
 		var air_horiz := body.velocity.slide(Vector3.UP)
@@ -387,6 +388,42 @@ func _is_climbable_contact(collision: KinematicCollision3D, contact_index: int) 
 		collision.get_normal(contact_index),
 		surface_collision_mask
 	)
+
+func _detach_on_no_climb_contact() -> void:
+	if climb_policy == null:
+		return
+	for collision_index in body.get_slide_collision_count():
+		var collision := body.get_slide_collision(collision_index)
+		for contact_index in collision.get_collision_count():
+			if climb_policy.is_contact_no_climb(
+				collision.get_collider(contact_index),
+				collision.get_collider_shape_index(contact_index),
+				collision.get_position(contact_index),
+				collision.get_normal(contact_index)
+			):
+				_begin_no_climb_fall(collision.get_normal(contact_index).normalized())
+				return
+
+func _begin_no_climb_fall(blocking_normal: Vector3) -> void:
+	jump_source_up = surface_up
+	jump_cooldown = maxf(jump_cooldown, detach_recontact_delay)
+	attached = false
+	is_airborne = true
+	floor_detach_active = true
+	coyote_timer = 0.0
+	transition_cooldown = 0.0
+	# Remove only motion into the wall. No outward component is introduced:
+	# losing adhesion must feel like a fall rather than a bounce.
+	if body.velocity.dot(blocking_normal) < 0.0:
+		body.velocity = body.velocity.slide(blocking_normal)
+	body.velocity.y = minf(body.velocity.y, 0.0)
+	surface_up = Vector3.UP
+	adhesion_up = Vector3.UP
+	smooth_up = Vector3.UP
+	var level_forward := surface_forward.slide(Vector3.UP).normalized()
+	if not level_forward.is_zero_approx():
+		surface_forward = level_forward
+		smooth_forward = level_forward
 
 
 func _find_surface(desired: Vector3) -> Dictionary:
@@ -577,8 +614,17 @@ func _apply_surface_transition(new_normal: Vector3, is_wrap := false, wrap_pos :
 			var lateral_offset := (body.global_position - wrap_pos).project(edge_axis)
 			var surface_anchor := wrap_pos + lateral_offset
 			var target_pos := surface_anchor + new_normal * 0.36
-			var delta_pos := target_pos - body.global_position
-			body.global_position = target_pos
+			var previous_position := body.global_position
+			var reposition_motion := target_pos - previous_position
+			# Preserve the tuned direct wrap on regular geometry. Only a rejected
+			# no-climb face needs a physical sweep; otherwise direct repositioning
+			# could tunnel through that solid because it is absent from the support
+			# manifold by design.
+			if _wrap_path_hits_no_climb(previous_position, target_pos):
+				body.move_and_collide(reposition_motion, false, body_contact_recovery_margin, true)
+			else:
+				body.global_position = target_pos
+			var delta_pos := body.global_position - previous_position
 			if camera_pivot != null:
 				camera_smoothing_offset = body.global_basis.inverse() * delta_pos
 
@@ -610,6 +656,17 @@ func _apply_surface_transition(new_normal: Vector3, is_wrap := false, wrap_pos :
 		if wrap_forward.is_zero_approx():
 			wrap_forward = (-old_up).slide(surface_up).normalized()
 		body.velocity = wrap_forward * (run_speed * 0.5) - surface_up * stick_velocity
+
+func _wrap_path_hits_no_climb(start: Vector3, end: Vector3) -> bool:
+	if climb_policy == null or start.is_equal_approx(end):
+		return false
+	var collision := body.move_and_collide(end - start, true, body_contact_recovery_margin, true)
+	if collision == null:
+		return false
+	for contact_index in collision.get_collision_count():
+		if not _is_climbable_contact(collision, contact_index):
+			return true
+	return false
 
 func _check_airborne_landing(_desired: Vector3) -> void:
 	# The CharacterBody sphere reports contacts from every side. During the short
