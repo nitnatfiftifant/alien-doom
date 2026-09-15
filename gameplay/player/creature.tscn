@@ -6,17 +6,17 @@
 [ext_resource type="Script" uid="uid://bt81k2nsn2lgk" path="res://gameplay/player/components/carry_component.gd" id="4"]
 [ext_resource type="Script" uid="uid://d0dry160wca6g" path="res://gameplay/world/health_component.gd" id="5"]
 [ext_resource type="Script" uid="uid://b67el8sek60up" path="res://ui/creature_hud.gd" id="6"]
-[ext_resource type="PackedScene" path="res://gameplay/player/acid_projectile.tscn" id="7"]
+[ext_resource type="PackedScene" uid="uid://bhk555jm0a5oo" path="res://gameplay/player/acid_projectile.tscn" id="7"]
 [ext_resource type="Texture2D" uid="uid://jd7gr181bgcr" path="res://assets/sprites/test_anim_bite_tileset.png" id="8"]
 [ext_resource type="Script" uid="uid://blf05fytchia7" path="res://gameplay/player/components/bite_overlay.gd" id="9"]
 [ext_resource type="Resource" path="res://gameplay/player/resources/default_creature_combat.tres" id="10"]
 [ext_resource type="Script" uid="uid://b6hp4uuv0blq3" path="res://gameplay/player/components/ragdoll_pusher_component.gd" id="11"]
 [ext_resource type="Resource" uid="uid://sab2e2rp6sve" path="res://gameplay/player/resources/default_corpse_drag.tres" id="12"]
 [ext_resource type="PackedScene" path="res://ui/pause_menu.tscn" id="13"]
-[ext_resource type="Script" path="res://gameplay/player/components/surface_contact_resolver.gd" id="14"]
-[ext_resource type="Script" path="res://ui/surface_sensor_debug_panel.gd" id="15"]
-[ext_resource type="Script" path="res://gameplay/player/components/surface_frame_resolver.gd" id="16"]
-[ext_resource type="Script" path="res://gameplay/player/components/surface_climb_policy.gd" id="17"]
+[ext_resource type="Script" uid="uid://cflpgmpjyqukh" path="res://gameplay/player/components/surface_contact_resolver.gd" id="14"]
+[ext_resource type="Script" uid="uid://cae6s066svhe2" path="res://ui/surface_sensor_debug_panel.gd" id="15"]
+[ext_resource type="Script" uid="uid://dptnc2600020v" path="res://gameplay/player/components/surface_frame_resolver.gd" id="16"]
+[ext_resource type="Script" uid="uid://igdd6xg8fwf7" path="res://gameplay/player/components/surface_climb_policy.gd" id="17"]
 
 [sub_resource type="SphereShape3D" id="CreatureShape"]
 radius = 0.35
@@ -101,15 +101,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.45, -1.1)
 [node name="AdhesionProbe" type="RayCast3D" parent="." unique_id=2061955812]
 target_position = Vector3(0, -0.9, 0)
 
-[node name="SurfaceClimbPolicy" type="Node" parent="."]
+[node name="SurfaceClimbPolicy" type="Node" parent="." unique_id=1381228352]
 script = ExtResource("17")
 
-[node name="SurfaceContactResolver" type="Node" parent="." node_paths=PackedStringArray("body", "climb_policy")]
+[node name="SurfaceContactResolver" type="Node" parent="." unique_id=324462947 node_paths=PackedStringArray("body", "climb_policy")]
 script = ExtResource("14")
 body = NodePath("..")
 climb_policy = NodePath("../SurfaceClimbPolicy")
 
-[node name="SurfaceFrameResolver" type="Node" parent="."]
+[node name="SurfaceFrameResolver" type="Node" parent="." unique_id=73992925]
 script = ExtResource("16")
 
 [node name="SurfaceMotor" type="Node" parent="." unique_id=874027800 node_paths=PackedStringArray("body", "camera_pivot", "adhesion_probe", "collision_shape", "contact_resolver", "frame_resolver", "climb_policy")]
@@ -179,7 +179,7 @@ layout_mode = 2
 text = "WASD бег | Shift скрытность | Space прыжок | C на пол
 ЛКМ укус | ПКМ кислота | E взаимодействие/труп | F3 датчики"
 
-[node name="SensorDebugPanel" type="Control" parent="CreatureHud" node_paths=PackedStringArray("motor", "contact_resolver", "view_camera", "adhesion_probe")]
+[node name="SensorDebugPanel" type="Control" parent="CreatureHud" unique_id=1309401424 node_paths=PackedStringArray("motor", "contact_resolver", "view_camera", "adhesion_probe")]
 layout_mode = 3
 anchors_preset = 1
 anchor_left = 1.0
@@ -196,7 +196,7 @@ contact_resolver = NodePath("../../SurfaceContactResolver")
 view_camera = NodePath("../../CameraPivot/Camera3D")
 adhesion_probe = NodePath("../../AdhesionProbe")
 
-[node name="Details" type="Label" parent="CreatureHud/SensorDebugPanel"]
+[node name="Details" type="Label" parent="CreatureHud/SensorDebugPanel" unique_id=1201101476]
 layout_mode = 0
 offset_left = 16.0
 offset_top = 310.0

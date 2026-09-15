@@ -1,7 +1,6 @@
-[gd_resource type="Resource" script_class="HumanVitalityConfig" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="HumanVitalityConfig" format=3 uid="uid://bdje3ola2b0ta"]
 
-[ext_resource type="Script" path="res://gameplay/humans/resources/human_vitality_config.gd" id="1"]
+[ext_resource type="Script" uid="uid://kkdqxu5u8tvb" path="res://gameplay/humans/resources/human_vitality_config.gd" id="1"]
 
 [resource]
 script = ExtResource("1")
-maximum_health = 100.0

@@ -1,7 +1,6 @@
-[gd_resource type="Resource" script_class="HumanAIConfig" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="HumanAIConfig" format=3 uid="uid://ckrskolpcrxfc"]
 
-[ext_resource type="Script" path="res://gameplay/humans/resources/human_ai_config.gd" id="1"]
+[ext_resource type="Script" uid="uid://h8ikr6xf5eaa" path="res://gameplay/humans/resources/human_ai_config.gd" id="1"]
 
 [resource]
 script = ExtResource("1")
-

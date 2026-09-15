@@ -1,13 +1,18 @@
-[gd_resource type="Resource" script_class="FuncGodotFGDSolidClass" load_steps=3 format=3]
-[ext_resource type="Script" path="res://addons/func_godot/src/fgd/func_godot_fgd_solid_class.gd" id="1"]
-[ext_resource type="Script" path="res://gameplay/interactables/acid_grate.gd" id="2"]
+[gd_resource type="Resource" script_class="FuncGodotFGDSolidClass" format=3 uid="uid://dd822c00o12x"]
+
+[ext_resource type="Script" uid="uid://5cow84q03m6a" path="res://addons/func_godot/src/fgd/func_godot_fgd_solid_class.gd" id="1"]
+[ext_resource type="Script" uid="uid://bscnoqeqylsxq" path="res://gameplay/interactables/acid_grate.gd" id="2"]
+
 [resource]
 script = ExtResource("1")
 collision_shape_type = 2
 script_class = ExtResource("2")
 classname = "func_acid_grate"
 description = "Ventilation grate removable only by the creature acid ability."
-class_properties = Dictionary[String, Variant]({"acid_resistance": 1})
-meta_properties = Dictionary[String, Variant]({"color": Color(0.35, 0.9, 0.45, 1)})
+class_properties = Dictionary[String, Variant]({
+"acid_resistance": 1
+})
+meta_properties = Dictionary[String, Variant]({
+"color": Color(0.35, 0.9, 0.45, 1)
+})
 node_class = "StaticBody3D"
-

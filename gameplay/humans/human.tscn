@@ -23,7 +23,7 @@
 [ext_resource type="Script" uid="uid://cw0v32ltljqfu" path="res://gameplay/humans/components/substates/combat_behavior.gd" id="21"]
 [ext_resource type="Script" uid="uid://dnuq0jpouq060" path="res://gameplay/humans/components/human_ragdoll_component.gd" id="22"]
 [ext_resource type="Resource" path="res://gameplay/humans/resources/default_human_ai.tres" id="23"]
-[ext_resource type="Script" path="res://gameplay/humans/components/human_awareness_memory.gd" id="24"]
+[ext_resource type="Script" uid="uid://cb61snw5bj2qk" path="res://gameplay/humans/components/human_awareness_memory.gd" id="24"]
 
 [sub_resource type="CapsuleShape3D" id="HumanShape"]
 height = 2.25
@@ -70,7 +70,7 @@ path_height_offset = 1.0
 [node name="StressComponent" type="Node" parent="." unique_id=1166636417]
 script = ExtResource("2")
 
-[node name="HumanAwarenessMemory" type="Node" parent="."]
+[node name="HumanAwarenessMemory" type="Node" parent="." unique_id=1326869831]
 script = ExtResource("24")
 
 [node name="PerceptionComponent" type="Node3D" parent="." unique_id=1679562453 node_paths=PackedStringArray("owner_body")]

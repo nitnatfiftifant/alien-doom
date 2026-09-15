@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cxsqwtsqd8w33" path="res://addons/func_godot/src/fgd/func_godot_fgd_point_class.gd" id="1"]
 [ext_resource type="Script" uid="uid://d1nwwgcrner8b" path="res://addons/func_godot/src/fgd/func_godot_fgd_point_class_display_descriptor.gd" id="1_2ehb6"]
-[ext_resource type="PackedScene" path="res://gameplay/world/func_spot_light.tscn" id="2"]
+[ext_resource type="PackedScene" uid="uid://ba53sfq1xhmv" path="res://gameplay/world/func_spot_light.tscn" id="2"]
 
 [resource]
 script = ExtResource("1")
