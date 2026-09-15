@@ -4,6 +4,8 @@ Godot 4 + FuncGodot + TrenchBroom jam project. The canonical level source is `ma
 
 Полный фактический срез проекта находится в `docs/PROJECT_STATUS_RU.md`. Статус моделей, анимаций, оружия и план ретаргета PSX-персонажей подробно описаны в `docs/ASSET_INTEGRATION_RU.md`.
 
+Метрики масштаба, проходов, вентиляции, прыжков и дистанций для построения уровней собраны в `docs/TRENCHBROOM_METRICS_RU.md`.
+
 ## Editing levels
 
 1. Run `tools/open_trenchbroom.ps1`, or start TrenchBroom and choose **Alien Doom**.

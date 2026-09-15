@@ -872,6 +872,14 @@
 }
 // entity 1
 {
+"classname" "info_human_spawn"
+"angles" "0 0 0"
+"patrol_id" ""
+"role" "Worker"
+"origin" "-160 -128 32"
+}
+// entity 2
+{
 "classname" "func_group"
 "_tb_type" "_tb_layer"
 "_tb_name" "RoomTest"
@@ -887,7 +895,7 @@
 ( 224 224 224 ) ( 224 224 225 ) ( 224 225 224 ) Tech/DOUBLELIGHTS [ 0 1 0 0 ] [ 0 0 -1 -16 ] 270 1 1
 }
 }
-// entity 2
+// entity 3
 {
 "classname" "func_detail"
 "_tb_layer" "1"
@@ -910,7 +918,7 @@
 ( 944 256 -32 ) ( 944 256 -31 ) ( 944 257 -32 ) Industrial/METALTILE [ 0 1 0 0 ] [ 0 0 -1 0 ] 180 1 1
 }
 }
-// entity 3
+// entity 4
 {
 "classname" "func_detail"
 "_tb_layer" "1"
@@ -924,7 +932,7 @@
 ( 256 -256 0 ) ( 256 -256 1 ) ( 256 -255 0 ) Bricks/BIGBRICKS [ 6.123233995736766e-17 1 0 0 ] [ 0 0 -1 0 ] 180 1 1
 }
 }
-// entity 4
+// entity 5
 {
 "classname" "func_detail"
 "_tb_layer" "1"
@@ -938,7 +946,7 @@
 ( 256 224 0 ) ( 256 224 1 ) ( 256 225 0 ) Bricks/BIGBRICKS [ 2.4492935982947064e-16 1 0 32 ] [ 0 0 -1 0 ] 0 1 1
 }
 }
-// entity 5
+// entity 6
 {
 "classname" "func_detail"
 "_tb_layer" "1"
@@ -952,7 +960,7 @@
 ( 256 224 0 ) ( 256 224 1 ) ( 256 225 0 ) Bricks/BIGBRICKS [ 6.123233995736766e-17 1 0 -32 ] [ 0 0 -1 0 ] 0 1 1
 }
 }
-// entity 6
+// entity 7
 {
 "classname" "info_human_spawn"
 "origin" "96 -144 32"
@@ -961,7 +969,60 @@
 "patrol_id" "patrol_a"
 "_tb_layer" "1"
 }
-// entity 7
+// entity 8
+{
+"classname" "info_human_spawn"
+"angles" "0 0 0"
+"patrol_id" ""
+"role" "Worker"
+"origin" "-128 576 32"
+"_tb_layer" "1"
+}
+// entity 9
+{
+"classname" "light"
+"_color" "255 230 179"
+"energy" "2.000000"
+"range" "8.000000"
+"shadow" "1"
+"origin" "528 656 8"
+"_tb_layer" "1"
+}
+// entity 10
+{
+"classname" "light_spot"
+"_color" "191 217 255"
+"angles" "0 0 0"
+"cone_angle" "45.000000"
+"energy" "3.000000"
+"range" "12.000000"
+"shadow" "1"
+"origin" "464 1448 8"
+"_tb_layer" "1"
+}
+// entity 11
+{
+"classname" "light_spot"
+"_color" "191 217 255"
+"angles" "0 0 0"
+"cone_angle" "45.000000"
+"energy" "3.000000"
+"range" "12.000000"
+"shadow" "1"
+"origin" "-120 688 8"
+"_tb_layer" "1"
+}
+// entity 12
+{
+"classname" "light"
+"_color" "255 230 179"
+"energy" "2.000000"
+"range" "8.000000"
+"shadow" "1"
+"origin" "-248 688 8"
+"_tb_layer" "1"
+}
+// entity 13
 {
 "classname" "func_group"
 "_tb_type" "_tb_layer"
@@ -1104,7 +1165,7 @@
 ( -336 240 208 ) ( -336 240 192 ) ( -336 224 208 ) Bricks/DUNGEONBRICKS [ 0 1 0 0 ] [ 0 0 -1 0 ] 270 1 1
 }
 }
-// entity 8
+// entity 14
 {
 "classname" "info_alien_start"
 "origin" "-504 176 16"
@@ -1112,7 +1173,7 @@
 "ceiling_spawn" "0"
 "_tb_layer" "3"
 }
-// entity 9
+// entity 15
 {
 "classname" "info_nest"
 "origin" "-512 96 16"
@@ -1120,7 +1181,7 @@
 "capacity" "4"
 "_tb_layer" "3"
 }
-// entity 10
+// entity 16
 {
 "classname" "func_group"
 "_tb_type" "_tb_layer"
@@ -1895,14 +1956,23 @@
 ( -1504 2176 160 ) ( -1504 2176 161 ) ( -1504 2177 160 ) Rocks/DIRT [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
 }
 }
-// entity 11
+// entity 17
 {
 "classname" "info_nest"
 "capacity" "4"
 "origin" "-1312 2240 112"
 "_tb_layer" "4"
 }
-// entity 12
+// entity 18
+{
+"classname" "info_human_spawn"
+"angles" "0 0 0"
+"patrol_id" ""
+"role" "worker"
+"origin" "-2032 2272 128"
+"_tb_layer" "4"
+}
+// entity 19
 {
 "classname" "func_group"
 "_tb_type" "_tb_layer"
@@ -2485,75 +2555,4 @@
 ( -4288 2592 320 ) ( -4287 2592 320 ) ( -4288 2592 321 ) Industrial/SUPPORT [ -1 0 0 0 ] [ 0 0 -1 0 ] 180 1 1
 ( -4032 2400 320 ) ( -4032 2400 321 ) ( -4032 2401 320 ) Industrial/SUPPORT [ 0 1 0 0 ] [ 0 0 -1 0 ] 180 1 1
 }
-}
-// entity 13
-{
-"classname" "info_human_spawn"
-"angles" "0 0 0"
-"patrol_id" ""
-"role" "worker"
-"origin" "-2032 2272 128"
-"_tb_layer" "5"
-}
-// entity 14
-{
-"classname" "info_human_spawn"
-"angles" "0 0 0"
-"patrol_id" ""
-"role" "Worker"
-"origin" "-160 -128 32"
-"_tb_layer" "5"
-}
-// entity 15
-{
-"classname" "info_human_spawn"
-"angles" "0 0 0"
-"patrol_id" ""
-"role" "Worker"
-"origin" "-128 576 32"
-"_tb_layer" "5"
-}
-// entity 16
-{
-"classname" "light"
-"_color" "255 230 179"
-"energy" "2.000000"
-"range" "8.000000"
-"shadow" "1"
-"origin" "-248 688 8"
-"_tb_layer" "5"
-}
-// entity 17
-{
-"classname" "light_spot"
-"_color" "191 217 255"
-"angles" "0 0 0"
-"cone_angle" "45.000000"
-"energy" "3.000000"
-"range" "12.000000"
-"shadow" "1"
-"origin" "-120 688 8"
-"_tb_layer" "5"
-}
-// entity 18
-{
-"classname" "light"
-"_color" "255 230 179"
-"energy" "2.000000"
-"range" "8.000000"
-"shadow" "1"
-"origin" "528 656 8"
-"_tb_layer" "5"
-}
-// entity 19
-{
-"classname" "light_spot"
-"_color" "191 217 255"
-"angles" "0 0 0"
-"cone_angle" "45.000000"
-"energy" "3.000000"
-"range" "12.000000"
-"shadow" "1"
-"origin" "464 1448 8"
-"_tb_layer" "5"
 }
