@@ -1,6 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 $candidates = @(
+    'E:\Godot_v4.8-dev5_win64.exe\Godot_v4.8-dev5_win64_console.exe',
     'C:\Users\nit\Downloads\Godot_v4.8-dev5_win64.exe\Godot_v4.8-dev5_win64_console.exe',
     'C:\Users\nit\Downloads\Godot_v4.8-dev5_win64.exe',
     'D:\BeProgrammer\Godot_Engine_Experimental\Godot_v4.8-dev5_win64.exe',
@@ -24,6 +25,7 @@ $scripts = @(
     'res://tools/validate_integration.gd',
     'res://tests/mvp_smoke_test.gd',
     'res://tests/human_hfsm_test.gd',
+    'res://tests/human_perception_wiring_test.gd',
     'res://tests/surface_and_perception_test.gd',
     'res://tests/acid_and_ragdoll_test.gd'
 )

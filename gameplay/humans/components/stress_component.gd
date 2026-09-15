@@ -23,7 +23,8 @@ func add_stress(amount: float) -> void:
 func add_stress_capped(amount: float, maximum: float) -> void:
 	if amount <= 0.0:
 		return
-	value = clampf(value + amount, 0.0, maximum)
+	# A corpse cannot create full alert or reduce an existing full alert.
+	value = maxf(value, clampf(value + amount, 0.0, maximum))
 	time_since_stimulus = 0.0
 	_update_state()
 	stress_changed.emit(value)

@@ -43,7 +43,7 @@ class_property_descriptions = Dictionary[String, Variant]({
 "patrol_id": "Patrol route identifier.",
 "peripheral_distance": "Peripheral vision range in metres.",
 "peripheral_half_angle": "Half-angle of the peripheral vision cone in degrees.",
-"role": "Worker, Guard, or Engineer.",
+"role": "Worker: orange civilian, flees from danger. Guard: blue armed guard with a visible vision cone.",
 "search_duration": "Seconds spent actively searching the last known area.",
 "search_radius": "Search radius around the last known position in metres.",
 "stress_decay_delay": "Seconds without stimuli before stress starts decreasing.",

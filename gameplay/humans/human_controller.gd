@@ -1,7 +1,12 @@
 class_name HumanController
 extends CharacterBody3D
 
-@export_enum("Worker", "Guard", "Engineer") var role := "Worker"
+@export_enum("Worker", "Guard") var role := "Worker":
+	set(value):
+		# Old Engineer markers are civilians; only Guard can use combat.
+		role = "Guard" if value == "Guard" else "Worker"
+		if is_node_ready():
+			_refresh_role()
 @export var targetname := ""
 @export var patrol_id := ""
 @export var vitality_config: HumanVitalityConfig
@@ -32,10 +37,22 @@ func _ready() -> void:
 		health.configure(vitality_config.maximum_health)
 	perception.stimulus_detected.connect(_on_stimulus)
 	health.died.connect(_on_died)
+	health.damaged.connect(_on_damaged)
 	stress.state_changed.connect(_on_stress_state_changed)
 	stress.state_changed.connect(_update_state_color)
 	_apply_map_ai_properties()
+	_refresh_role()
 	_update_state_color(StressComponent.State.CALM, StressComponent.State.CALM)
+
+func is_guard() -> bool:
+	return role == "Guard"
+
+func _refresh_role() -> void:
+	$HumanPresentationComponent.refresh_role()
+	$PerceptionComponent/GuardViewCone.refresh_role()
+	if state_machine.current != null:
+		state_machine.current.exit()
+		state_machine.current.enter()
 
 func _apply_map_ai_properties() -> void:
 	if ai_config == null or _map_properties.is_empty():
@@ -89,6 +106,8 @@ func _share_stress() -> void:
 		return
 	for human in get_tree().get_nodes_in_group("humans"):
 		if human != self and global_position.distance_to(human.global_position) <= ai_config.stress_share_radius:
+			if stress.value > human.stress.value and not human.awareness.creature_visible:
+				human.awareness.remember_stimulus(awareness.last_known_position, awareness.last_stimulus_kind == HumanAwarenessMemory.StimulusKind.CORPSE)
 			human.stress.synchronize_upwards(stress.value)
 
 func navigate_to_last_stimulus(flee: bool) -> void:
@@ -159,9 +178,15 @@ func _on_died(_instigator: Node) -> void:
 	remove_from_group("humans")
 	add_to_group("dead_humans")
 	add_to_group("corpses")
+	$PerceptionComponent/GuardViewCone.refresh_role()
 	collision_layer = 0
 	collision_mask = 0
 	$CollisionShape3D.set_deferred("disabled", true)
 	state_indicator.visible = false
 	$HumanAnimationComponent.set_process(false)
 	ragdoll.activate(velocity)
+
+func _on_damaged(_amount: float, instigator: Node) -> void:
+	if instigator is Node3D:
+		awareness.remember_stimulus(instigator.global_position, false)
+	stress.add_stress(100.0)

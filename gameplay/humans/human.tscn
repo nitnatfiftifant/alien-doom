@@ -24,6 +24,8 @@
 [ext_resource type="Script" uid="uid://dnuq0jpouq060" path="res://gameplay/humans/components/human_ragdoll_component.gd" id="22"]
 [ext_resource type="Resource" path="res://gameplay/humans/resources/default_human_ai.tres" id="23"]
 [ext_resource type="Script" uid="uid://cb61snw5bj2qk" path="res://gameplay/humans/components/human_awareness_memory.gd" id="24"]
+[ext_resource type="Script" path="res://gameplay/humans/components/human_presentation_component.gd" id="25"]
+[ext_resource type="Script" path="res://gameplay/humans/components/guard_view_cone.gd" id="26"]
 
 [sub_resource type="CapsuleShape3D" id="HumanShape"]
 height = 2.25
@@ -77,6 +79,15 @@ script = ExtResource("24")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.65, 0)
 script = ExtResource("3")
 owner_body = NodePath("..")
+
+[node name="GuardViewCone" type="MeshInstance3D" parent="PerceptionComponent" node_paths=PackedStringArray("actor")]
+script = ExtResource("26")
+actor = NodePath("../..")
+
+[node name="HumanPresentationComponent" type="Node" parent="." node_paths=PackedStringArray("actor", "visual_root")]
+script = ExtResource("25")
+actor = NodePath("..")
+visual_root = NodePath("../VisualRoot/AnimatedModel")
 
 [node name="HealthComponent" type="Node" parent="." unique_id=156708299]
 script = ExtResource("9")

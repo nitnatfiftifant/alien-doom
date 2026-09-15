@@ -44,12 +44,12 @@ func _has_line_of_sight(target_position: Vector3, expected: Node3D = null) -> bo
 	return collider == expected or (collider != null and expected.is_ancestor_of(collider))
 
 func _on_noise(position: Vector3, loudness: float, source: Node) -> void:
-	if source == owner_body:
+	if source == owner_body or owner_body.is_in_group("corpses"):
 		return
 	var distance := global_position.distance_to(position)
 	if distance > hearing_distance * loudness:
 		return
-	var occlusion := 1.0 if _has_line_of_sight(position) else 0.35
+	var occlusion := 1.0 if _has_line_of_sight(position, source as Node3D) else 0.35
 	var audible_range := maxf(hearing_distance * loudness, 0.01)
 	var strength := loudness * occlusion * clampf(1.0 - distance / audible_range, 0.0, 1.0) * 30.0
 	stimulus_detected.emit(position, maxf(strength, 0.0), false)
