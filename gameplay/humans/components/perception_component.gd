@@ -2,6 +2,8 @@ class_name PerceptionComponent
 extends Node3D
 
 signal stimulus_detected(position: Vector3, strength: float, is_corpse: bool)
+signal noise_detected(position: Vector3, strength: float, source: Node)
+signal alarm_detected(threat_position: Vector3, strength: float)
 
 @export var owner_body: Node3D
 @export var direct_view_distance := 14.0
@@ -13,6 +15,7 @@ signal stimulus_detected(position: Vector3, strength: float, is_corpse: bool)
 
 func _ready() -> void:
 	(get_node("/root/NOISE") as NoiseBus).noise_emitted.connect(_on_noise)
+	(get_node("/root/NOISE") as NoiseBus).alarm_emitted.connect(_on_alarm)
 
 func evaluate_target(target: Node3D, delta: float, is_corpse := false) -> bool:
 	if target == null:
@@ -46,10 +49,22 @@ func _has_line_of_sight(target_position: Vector3, expected: Node3D = null) -> bo
 func _on_noise(position: Vector3, loudness: float, source: Node) -> void:
 	if source == owner_body or owner_body.is_in_group("corpses"):
 		return
+	var strength := _heard_strength(position, loudness, source)
+	if strength > 0.0:
+		noise_detected.emit(position, strength, source)
+
+func _on_alarm(position: Vector3, loudness: float, source: Node, threat_position: Vector3) -> void:
+	if source == owner_body or owner_body.is_in_group("corpses"):
+		return
+	var strength := _heard_strength(position, loudness, source)
+	if strength >= 2.0:
+		alarm_detected.emit(threat_position, strength)
+
+func _heard_strength(position: Vector3, loudness: float, source: Node) -> float:
 	var distance := global_position.distance_to(position)
 	if distance > hearing_distance * loudness:
-		return
+		return 0.0
 	var occlusion := 1.0 if _has_line_of_sight(position, source as Node3D) else 0.35
 	var audible_range := maxf(hearing_distance * loudness, 0.01)
 	var strength := loudness * occlusion * clampf(1.0 - distance / audible_range, 0.0, 1.0) * 30.0
-	stimulus_detected.emit(position, maxf(strength, 0.0), false)
+	return maxf(strength, 0.0)

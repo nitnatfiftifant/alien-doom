@@ -22,8 +22,21 @@ func run() -> void:
 	assert(guard.state_machine.current.name == "Alert", "Guard did not enter Alert container")
 	assert(guard.state_machine.current.current_substate.name == "Combat", "Alert guard did not enter Combat substate")
 	var health_before := creature.health.current_health
-	guard.state_machine.physics_update(1.0)
-	assert(creature.health.current_health < health_before, "Combat substate did not execute ranged combat")
+	var fired := false
+	for frame in 120:
+		guard.aiming.tick(1.0 / 60.0)
+		guard.state_machine.physics_update(1.0 / 60.0)
+		if not get_nodes_in_group("human_bullets").is_empty():
+			fired = true
+			assert(creature.health.current_health == health_before, "Firing still causes instant hitscan damage")
+			break
+		await physics_frame
+	assert(fired, "Combat substate did not launch a projectile after aiming")
+	for frame in 60:
+		await physics_frame
+		if creature.health.current_health < health_before:
+			break
+	assert(creature.health.current_health == health_before - guard.combat.damage, "Travelling bullet did not apply exactly one hit")
 
 	var worker := _spawn_human(root, "Worker", Vector3(4.0, 0.0, 0.0))
 	worker.set_physics_process(false)

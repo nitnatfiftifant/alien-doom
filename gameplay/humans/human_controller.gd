@@ -20,6 +20,8 @@ extends CharacterBody3D
 @onready var state_indicator: MeshInstance3D = $StateIndicator
 @onready var ragdoll: HumanRagdollComponent = $HumanRagdollComponent
 @onready var awareness: HumanAwarenessMemory = $HumanAwarenessMemory
+@onready var aiming: HumanAimComponent = $HumanAimComponent
+@onready var alarm: HumanAlarmComponent = $HumanAlarmComponent
 var _map_properties: Dictionary = {}
 var _has_unique_ai_config := false
 
@@ -36,6 +38,8 @@ func _ready() -> void:
 	if vitality_config != null:
 		health.configure(vitality_config.maximum_health)
 	perception.stimulus_detected.connect(_on_stimulus)
+	perception.noise_detected.connect(_on_noise_stimulus)
+	perception.alarm_detected.connect(_on_alarm_heard)
 	health.died.connect(_on_died)
 	health.damaged.connect(_on_damaged)
 	stress.state_changed.connect(_on_stress_state_changed)
@@ -48,6 +52,7 @@ func is_guard() -> bool:
 	return role == "Guard"
 
 func _refresh_role() -> void:
+	$HumanWeaponComponent.refresh_role()
 	$HumanPresentationComponent.refresh_role()
 	$PerceptionComponent/GuardViewCone.refresh_role()
 	if state_machine.current != null:
@@ -82,10 +87,12 @@ func _map_float(property: StringName, fallback: float) -> float:
 func _physics_process(delta: float) -> void:
 	stress.tick(delta)
 	awareness.tick(delta)
+	aiming.tick(delta)
 	var creature := get_tree().get_first_node_in_group("creature") as CreatureController
 	for corpse in get_tree().get_nodes_in_group("corpses"):
 		perception.evaluate_target(corpse as Node3D, delta, true)
 	awareness.track_creature(creature, perception.evaluate_target(creature, delta))
+	alarm.tick(delta)
 	_share_stress()
 	state_machine.physics_update(delta)
 	if not is_on_floor():
@@ -110,6 +117,18 @@ func _share_stress() -> void:
 				human.awareness.remember_stimulus(awareness.last_known_position, awareness.last_stimulus_kind == HumanAwarenessMemory.StimulusKind.CORPSE)
 			human.stress.synchronize_upwards(stress.value)
 
+func _on_noise_stimulus(position: Vector3, strength: float, source: Node) -> void:
+	# A frightened civilian must keep fleeing the monster, not the guard firing at it.
+	if source is HumanController and stress.state >= StressComponent.State.POST_ALERT and awareness.last_stimulus_kind != HumanAwarenessMemory.StimulusKind.NONE:
+		stress.add_stress(strength)
+		return
+	_on_stimulus(position, strength, false)
+
+func _on_alarm_heard(threat_position: Vector3, strength: float) -> void:
+	if not awareness.creature_visible:
+		awareness.remember_stimulus(threat_position, false)
+	stress.add_stress(maxf(strength, 75.0 - stress.value))
+
 func navigate_to_last_stimulus(flee: bool) -> void:
 	if flee:
 		var away := global_position - awareness.last_known_position
@@ -121,14 +140,20 @@ func navigate_to_last_stimulus(flee: bool) -> void:
 		navigation.target_position = awareness.last_known_position
 
 func follow_navigation(_flee := false, delta := 1.0 / 60.0) -> void:
+	if has_reached_navigation_target():
+		slow_down()
+		return
 	var next_position := navigation.target_position
-	if navigation.get_navigation_map().is_valid() and not navigation.is_navigation_finished():
+	var navigation_map := navigation.get_navigation_map()
+	if navigation_map.is_valid() and NavigationServer3D.map_get_iteration_id(navigation_map) > 0 and not navigation.is_navigation_finished():
 		next_position = navigation.get_next_path_position()
 	var direction := next_position - global_position
 	direction.y = 0.0
 	direction = direction.normalized()
 	if direction.is_zero_approx():
-		direction = awareness.last_known_position - global_position
+		# An empty agent path returns the current position. Fall back to the
+		# intended destination, which is AWAY from the threat during Flee.
+		direction = navigation.target_position - global_position
 		direction.y = 0.0
 		direction = direction.normalized()
 	var desired: Vector3 = direction * float(ai_config.move_speed)
@@ -179,11 +204,14 @@ func _on_died(_instigator: Node) -> void:
 	add_to_group("dead_humans")
 	add_to_group("corpses")
 	$PerceptionComponent/GuardViewCone.refresh_role()
+	alarm.stop()
 	collision_layer = 0
 	collision_mask = 0
 	$CollisionShape3D.set_deferred("disabled", true)
 	state_indicator.visible = false
 	$HumanAnimationComponent.set_process(false)
+	if aiming.modifier != null:
+		aiming.modifier.active = false
 	ragdoll.activate(velocity)
 
 func _on_damaged(_amount: float, instigator: Node) -> void:

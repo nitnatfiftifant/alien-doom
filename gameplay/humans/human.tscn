@@ -26,6 +26,9 @@
 [ext_resource type="Script" uid="uid://cb61snw5bj2qk" path="res://gameplay/humans/components/human_awareness_memory.gd" id="24"]
 [ext_resource type="Script" path="res://gameplay/humans/components/human_presentation_component.gd" id="25"]
 [ext_resource type="Script" path="res://gameplay/humans/components/guard_view_cone.gd" id="26"]
+[ext_resource type="Script" path="res://gameplay/humans/components/human_aim_component.gd" id="27"]
+[ext_resource type="PackedScene" path="res://gameplay/humans/bullet_projectile.tscn" id="28"]
+[ext_resource type="Script" path="res://gameplay/humans/components/human_alarm_component.gd" id="29"]
 
 [sub_resource type="CapsuleShape3D" id="HumanShape"]
 height = 2.25
@@ -69,6 +72,28 @@ mesh = SubResource("IndicatorMesh")
 [node name="NavigationAgent3D" type="NavigationAgent3D" parent="." unique_id=1411003338]
 path_height_offset = 1.0
 
+[node name="AlarmIndicator" type="Label3D" parent="."]
+position = Vector3(0, 2.95, 0)
+billboard = 1
+text = "!"
+font_size = 96
+outline_size = 14
+pixel_size = 0.007
+no_depth_test = false
+visible = false
+
+[node name="AlarmVoice" type="AudioStreamPlayer3D" parent="."]
+position = Vector3(0, 1.65, 0)
+volume_db = -8.0
+unit_size = 3.0
+max_distance = 27.0
+
+[node name="HumanAlarmComponent" type="Node" parent="." node_paths=PackedStringArray("actor", "indicator", "voice")]
+script = ExtResource("29")
+actor = NodePath("..")
+indicator = NodePath("../AlarmIndicator")
+voice = NodePath("../AlarmVoice")
+
 [node name="StressComponent" type="Node" parent="." unique_id=1166636417]
 script = ExtResource("2")
 
@@ -92,10 +117,11 @@ visual_root = NodePath("../VisualRoot/AnimatedModel")
 [node name="HealthComponent" type="Node" parent="." unique_id=156708299]
 script = ExtResource("9")
 
-[node name="RangedCombatComponent" type="Node" parent="." unique_id=492508192 node_paths=PackedStringArray("actor", "muzzle")]
+[node name="RangedCombatComponent" type="Node" parent="." unique_id=492508192 node_paths=PackedStringArray("actor", "weapon")]
 script = ExtResource("10")
 actor = NodePath("..")
-muzzle = NodePath("../PerceptionComponent")
+weapon = NodePath("../HumanWeaponComponent")
+projectile_scene = ExtResource("28")
 
 [node name="HumanAnimationComponent" type="Node" parent="." unique_id=423616412 node_paths=PackedStringArray("actor", "visual_root", "combat")]
 script = ExtResource("13")
@@ -108,6 +134,13 @@ script = ExtResource("15")
 actor = NodePath("..")
 visual_root = NodePath("../VisualRoot")
 pistol_scene = ExtResource("14")
+
+[node name="HumanAimComponent" type="Node" parent="." node_paths=PackedStringArray("actor", "visual_root", "perception", "weapon")]
+script = ExtResource("27")
+actor = NodePath("..")
+visual_root = NodePath("../VisualRoot")
+perception = NodePath("../PerceptionComponent")
+weapon = NodePath("../HumanWeaponComponent")
 
 [node name="HumanRagdollComponent" type="Node" parent="." unique_id=888218436 node_paths=PackedStringArray("visual_root")]
 script = ExtResource("22")

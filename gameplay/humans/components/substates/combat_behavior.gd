@@ -10,7 +10,6 @@ func physics_update(_delta: float) -> void:
 		return
 	if actor.awareness.creature_visible:
 		actor.slow_down()
-		actor.face_position(actor.awareness.tracked_creature.global_position, _delta)
 		actor.combat.tick(actor.awareness.tracked_creature, _delta)
 	elif actor.has_reached_navigation_target():
 		actor.slow_down()
