@@ -109,7 +109,13 @@ func _find_near_aim_body(owner_body: Node) -> PhysicalBone3D:
 		if along < 0.0 or along > config.reach: continue
 		var radial_distance := (offset - ray_direction * along).length()
 		if radial_distance > config.aim_radius or along >= best_distance: continue
-		var occlusion := PhysicsRayQueryParameters3D.create(ray_origin, body.global_position, 1)
+		# Stop slightly before the physical bone. A ray ending at the centre of a
+		# corpse lying on the floor often reports that floor at the endpoint and
+		# incorrectly rejects an otherwise visible grab target.
+		var body_distance := ray_origin.distance_to(body.global_position)
+		var endpoint_margin := minf(0.12, body_distance * 0.25)
+		var occlusion_target := body.global_position + (ray_origin - body.global_position).normalized() * endpoint_margin
+		var occlusion := PhysicsRayQueryParameters3D.create(ray_origin, occlusion_target, 1)
 		occlusion.exclude = [owner_body]
 		if not camera.get_world_3d().direct_space_state.intersect_ray(occlusion).is_empty(): continue
 		best = body

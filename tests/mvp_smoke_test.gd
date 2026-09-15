@@ -13,6 +13,23 @@ func run() -> void:
 	var creature := get_first_node_in_group("creature") as CreatureController
 	var humans := get_nodes_in_group("humans")
 	var nest := get_first_node_in_group("creature_nest") as CreatureNest
+	if humans.is_empty():
+		var worker_fixture := (load("res://gameplay/humans/human.tscn") as PackedScene).instantiate() as HumanController
+		worker_fixture.role = "Worker"
+		world.add_child(worker_fixture)
+		humans.append(worker_fixture)
+	var has_guard := false
+	for placed_human in humans:
+		has_guard = has_guard or (placed_human as HumanController).role == "Guard"
+	if not has_guard:
+		var guard_fixture := (load("res://gameplay/humans/human.tscn") as PackedScene).instantiate() as HumanController
+		guard_fixture.role = "Guard"
+		world.add_child(guard_fixture)
+		humans.append(guard_fixture)
+	if nest == null:
+		nest = (load("res://gameplay/nest/nest.tscn") as PackedScene).instantiate() as CreatureNest
+		world.add_child(nest)
+	await process_frame
 	assert(creature != null, "Creature was not spawned from info_alien_start")
 	var sensor_panel := creature.get_node("CreatureHud/SensorDebugPanel") as SurfaceSensorDebugPanel
 	assert(sensor_panel != null, "Surface sensor debug panel is missing from HUD")

@@ -7,6 +7,7 @@ extends Node
 @export var collision_shape: CollisionShape3D
 @export var contact_resolver: Node
 @export var frame_resolver: Node
+@export var climb_policy: SurfaceClimbPolicy
 @export var run_speed := 8.0
 @export var sneak_speed := 3.0
 @export var acceleration := 28.0
@@ -24,6 +25,8 @@ extends Node
 @export var coyote_time := 0.08
 @export var jump_recontact_delay := 0.2
 @export var detach_recontact_delay := 0.25
+@export_range(0.0, 20.0, 0.1, "or_greater") var floor_detach_surface_push := 2.5
+@export_range(0.0, 20.0, 0.1, "or_greater") var floor_detach_downward_speed := 2.5
 @export var surface_transition_delay := 0.12
 @export var floor_snap_length := 0.4
 @export_group("Corner probing")
@@ -72,6 +75,7 @@ var wrap_protection_timer := 0.0
 var recent_surface_history: Array[Vector3] = []
 var corner_dwell_timer := 0.0
 var jump_launch_timer := 0.0
+var floor_detach_active := false
 var camera_smoothing_offset := Vector3.ZERO
 var debug_probe_samples: Array[Dictionary] = []
 const CAMERA_BASE_POS := Vector3(0, 0.18, 0)
@@ -102,6 +106,7 @@ func reset_orientation(facing: Vector3 = Vector3.FORWARD, up: Vector3 = Vector3.
 	transition_cooldown = 0.0
 	jump_cooldown = 0.0
 	jump_launch_timer = 0.0
+	floor_detach_active = false
 	wrap_protection_timer = 0.0
 	corner_dwell_timer = 0.0
 	camera_smoothing_offset = Vector3.ZERO
@@ -140,9 +145,11 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 
 	# 1. Handle Floor Detach (Key C)
 	if floor_detach_pressed and (attached or not is_airborne):
-		jump_source_up = surface_up
+		var detached_surface_up := surface_up
+		jump_source_up = detached_surface_up
 		attached = false
 		is_airborne = true
+		floor_detach_active = true
 		coyote_timer = 0.0
 		jump_cooldown = detach_recontact_delay
 		jump_launch_timer = 0.04
@@ -151,7 +158,10 @@ func physics_step(input_vector: Vector2, sneaking: bool, jump_pressed: bool, del
 		smooth_up = Vector3.UP
 		smooth_forward = surface_forward.slide(Vector3.UP).normalized()
 		previous_surface_up = Vector3.UP
-		body.velocity = body.velocity.slide(surface_up)
+		var preserved_horizontal := body.velocity.slide(Vector3.UP)
+		var outward := detached_surface_up.slide(Vector3.UP).normalized()
+		body.velocity = preserved_horizontal + outward * floor_detach_surface_push
+		body.velocity.y = -floor_detach_downward_speed
 
 	# 2. Physics movement always follows the authoritative surface plane. Only
 	# the rendered body/camera uses the smoothed frame.
@@ -298,6 +308,8 @@ func _resolve_surface_frame(desired: Vector3, delta: float) -> Dictionary:
 	_append_body_contact_candidates(candidates)
 	for index in body.get_slide_collision_count():
 		var collision := body.get_slide_collision(index)
+		if not _is_climbable_collision(collision):
+			continue
 		var slide_candidate := {
 			"name": "slide_%d" % index, "source": "slide", "hit": true,
 			"position": collision.get_position(), "normal": collision.get_normal().normalized(),
@@ -327,6 +339,8 @@ func _append_body_contact_candidates(candidates: Array[Dictionary]) -> void:
 		if collision == null:
 			continue
 		for contact_index in collision.get_collision_count():
+			if not _is_climbable_contact(collision, contact_index):
+				continue
 			var candidate := {
 				"name": "body_probe_%d_%d" % [probe_index, contact_index],
 				"source": "slide",
@@ -343,12 +357,36 @@ func _add_ray_candidate(candidates: Array[Dictionary], space: PhysicsDirectSpace
 	query.exclude = [body]
 	var hit := space.intersect_ray(query)
 	_record_probe(probe_name, source, start, end, hit)
-	if hit.is_empty():
+	if hit.is_empty() or not _is_climbable_hit(hit):
 		return
 	hit["name"] = probe_name
 	hit["source"] = source
 	hit["hit"] = true
 	candidates.append(hit)
+
+func _is_climbable_collider(collider: Object) -> bool:
+	var collision_object := collider as CollisionObject3D
+	return collision_object != null and (collision_object.collision_layer & surface_collision_mask) != 0
+
+func _is_climbable_hit(hit: Dictionary) -> bool:
+	if climb_policy != null:
+		return climb_policy.is_hit_climbable(hit, surface_collision_mask)
+	return _is_climbable_collider(hit.get("collider", null))
+
+func _is_climbable_collision(collision: KinematicCollision3D, contact_index := 0) -> bool:
+	return _is_climbable_contact(collision, contact_index)
+
+func _is_climbable_contact(collision: KinematicCollision3D, contact_index: int) -> bool:
+	var collider := collision.get_collider(contact_index)
+	if climb_policy == null:
+		return _is_climbable_collider(collider)
+	return climb_policy.is_contact_climbable(
+		collider,
+		collision.get_collider_shape_index(contact_index),
+		collision.get_position(contact_index),
+		collision.get_normal(contact_index),
+		surface_collision_mask
+	)
 
 
 func _find_surface(desired: Vector3) -> Dictionary:
@@ -364,7 +402,7 @@ func _find_surface(desired: Vector3) -> Dictionary:
 		attach_query.exclude = [body]
 		var attach_hit := space.intersect_ray(attach_query)
 		var adopt_attach := false
-		if not attach_hit.is_empty():
+		if not attach_hit.is_empty() and _is_climbable_hit(attach_hit):
 			var attach_normal: Vector3 = (attach_hit.normal as Vector3).normalized()
 			adopt_attach = attach_normal.dot(surface_up) < surface_normal_threshold
 		_record_probe("movement_attach", "surface", origin, attach_target, attach_hit, adopt_attach)
@@ -378,7 +416,7 @@ func _find_surface(desired: Vector3) -> Dictionary:
 	down_query.exclude = [body]
 	var down_hit := space.intersect_ray(down_query)
 	_record_probe("surface_down", "surface", origin, origin - surface_up * probe_length, down_hit)
-	if not down_hit.is_empty():
+	if not down_hit.is_empty() and _is_climbable_hit(down_hit):
 		var hit_norm: Vector3 = down_hit.normal.normalized()
 		if hit_norm.dot(surface_up) < 0.98 and transition_cooldown <= 0.0:
 			down_hit["transitioned"] = true
@@ -394,7 +432,7 @@ func _find_surface(desired: Vector3) -> Dictionary:
 		diag_query.exclude = [body]
 		var diag_hit := space.intersect_ray(diag_query)
 		_record_probe("corner_diagonal", "corner", origin, origin + corner_diag * probe_length, diag_hit)
-		if not diag_hit.is_empty():
+		if not diag_hit.is_empty() and _is_climbable_hit(diag_hit):
 			diag_hit["transitioned"] = false
 			diag_hit["is_wrap"] = false
 			return diag_hit
@@ -406,7 +444,7 @@ func _find_surface(desired: Vector3) -> Dictionary:
 	forward_down_query.exclude = [body]
 	var forward_down_hit := space.intersect_ray(forward_down_query)
 	_record_probe("surface_forward", "surface", origin, forward_down_target, forward_down_hit)
-	if not forward_down_hit.is_empty():
+	if not forward_down_hit.is_empty() and _is_climbable_hit(forward_down_hit):
 		var hit_norm: Vector3 = forward_down_hit.normal.normalized()
 		if hit_norm.dot(surface_up) < 0.98 and transition_cooldown <= 0.0:
 			forward_down_hit["transitioned"] = true
@@ -427,7 +465,7 @@ func _find_surface(desired: Vector3) -> Dictionary:
 		wrap_query.exclude = [body]
 		var wrap_hit := space.intersect_ray(wrap_query)
 		_record_probe("corner_wrap_%d" % wrap_index, "corner", wrap_start, wrap_target, wrap_hit)
-		if not wrap_hit.is_empty():
+		if not wrap_hit.is_empty() and _is_climbable_hit(wrap_hit):
 			var hit_norm: Vector3 = wrap_hit.normal.normalized()
 			if hit_norm.dot(surface_up) < surface_normal_threshold:
 				wrap_hit["transitioned"] = true
@@ -452,6 +490,8 @@ func _adopt_slide_surface(desired: Vector3, attempted_velocity: Vector3) -> void
 	var strongest_opposition := -INF
 	for index in body.get_slide_collision_count():
 		var collision := body.get_slide_collision(index)
+		if not _is_climbable_collision(collision):
+			continue
 		var normal := collision.get_normal().normalized()
 		_record_contact("slide_%d" % index, "body", collision.get_position(), normal, collision.get_collider())
 		if normal.dot(surface_up) > 0.999:
@@ -579,7 +619,11 @@ func _check_airborne_landing(_desired: Vector3) -> void:
 		var collision := body.get_slide_collision(index)
 		var normal := collision.get_normal().normalized()
 		_record_contact("landing_contact_%d" % index, "landing", collision.get_position(), normal, collision.get_collider())
+		if not _is_climbable_collision(collision):
+			continue
 		if _is_blocked_jump_source(normal):
+			continue
+		if floor_detach_active and normal.dot(Vector3.UP) <= floor_normal_threshold:
 			continue
 		_land_on_surface(normal)
 		return
@@ -594,9 +638,9 @@ func _check_airborne_landing(_desired: Vector3) -> void:
 		landing_query.exclude = [body]
 		var landing_hit := space.intersect_ray(landing_query)
 		_record_probe("landing_flight", "landing", origin, origin + flight_dir * 0.5, landing_hit)
-		if not landing_hit.is_empty():
+		if not landing_hit.is_empty() and _is_climbable_hit(landing_hit):
 			var normal: Vector3 = (landing_hit.normal as Vector3).normalized()
-			if vel.dot(normal) <= 0.5 and not _is_blocked_jump_source(normal):
+			if vel.dot(normal) <= 0.5 and not _is_blocked_jump_source(normal) and (not floor_detach_active or normal.dot(Vector3.UP) > floor_normal_threshold):
 				_land_on_surface(normal)
 				return
 
@@ -605,7 +649,7 @@ func _check_airborne_landing(_desired: Vector3) -> void:
 	ground_query.exclude = [body]
 	var ground_hit := space.intersect_ray(ground_query)
 	_record_probe("landing_ground", "landing", origin, origin + Vector3.DOWN * landing_probe_distance, ground_hit)
-	if not ground_hit.is_empty():
+	if not ground_hit.is_empty() and _is_climbable_hit(ground_hit):
 		var normal: Vector3 = ground_hit.normal.normalized()
 		if normal.y > floor_normal_threshold and not _is_blocked_jump_source(normal):
 			_land_on_surface(normal)
@@ -614,12 +658,15 @@ func _is_blocked_jump_source(normal: Vector3) -> bool:
 	return jump_cooldown > 0.0 and normal.dot(jump_source_up) > jump_source_recontact_dot
 
 func _land_on_surface(normal: Vector3) -> void:
+	if floor_detach_active and normal.dot(Vector3.UP) <= floor_normal_threshold:
+		return
 	var old_up := surface_up
 	previous_surface_up = old_up
 	surface_up = normal
 	adhesion_up = normal
 	is_airborne = false
 	attached = true
+	floor_detach_active = false
 	coyote_timer = coyote_time
 	transition_cooldown = surface_transition_delay
 
@@ -679,7 +726,7 @@ func _update_orientation(delta: float) -> void:
 		var look_hit := space.intersect_ray(look_query)
 		_record_probe("air_look", "air", origin, origin + cam_forward * 3.5, look_hit)
 
-		if not look_hit.is_empty():
+		if not look_hit.is_empty() and _is_climbable_hit(look_hit):
 			var hit_norm: Vector3 = (look_hit.normal as Vector3).normalized()
 			var dist: float = origin.distance_to(look_hit.position)
 			if hit_norm.y < -0.5:
@@ -703,7 +750,7 @@ func _update_orientation(delta: float) -> void:
 			flight_query.exclude = [body]
 			var flight_hit := space.intersect_ray(flight_query)
 			_record_probe("air_flight", "air", origin, origin + flight_dir * reach_dist, flight_hit)
-			if not flight_hit.is_empty():
+			if not flight_hit.is_empty() and _is_climbable_hit(flight_hit):
 				var hit_norm: Vector3 = (flight_hit.normal as Vector3).normalized()
 				var dist: float = origin.distance_to(flight_hit.position)
 				if hit_norm.y < -0.5:
@@ -723,7 +770,7 @@ func _update_orientation(delta: float) -> void:
 			down_query.exclude = [body]
 			var down_hit := space.intersect_ray(down_query)
 			_record_probe("air_down", "air", origin, origin + Vector3.DOWN * 2.5, down_hit)
-			if not down_hit.is_empty():
+			if not down_hit.is_empty() and _is_climbable_hit(down_hit):
 				target_up = (down_hit.normal as Vector3).normalized()
 				var dist: float = origin.distance_to(down_hit.position)
 				proximity_factor = clampf(1.0 - ((dist - 0.35) / 2.0), 0.35, 1.0)

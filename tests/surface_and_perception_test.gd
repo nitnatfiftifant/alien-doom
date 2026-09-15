@@ -13,11 +13,23 @@ func run() -> void:
 	creature.position = Vector3(0, 0.45, 0)
 	creature.set_physics_process(false)
 	await physics_frame
+	_test_no_climb_material_policy(root, creature.motor.climb_policy)
 	var initial_forward := creature.motor.surface_forward
 	for step in 20:
 		creature.motor.physics_step(Vector2(1, 0), false, false, 1.0 / 60.0)
 		await physics_frame
 	assert(creature.motor.surface_forward.dot(initial_forward) > 0.99, "Strafing rotated the creature instead of moving sideways")
+
+	# Dynamic actors remain solid but can never become adhesive support.
+	_add_box(root, Vector3(2.0, 1.0, 0.0), Vector3(0.8, 2.0, 0.8), 4)
+	creature.position = Vector3(2.0, 0.45, 1.0)
+	creature.velocity = Vector3.ZERO
+	creature.motor.reset_orientation()
+	for actor_collision_step in 30:
+		creature.motor.physics_step(Vector2(0, 1), false, false, 1.0 / 60.0)
+		await physics_frame
+	assert(creature.global_position.z > 0.25, "Human-layer collider did not physically block the creature")
+	assert(creature.motor.surface_up.dot(Vector3.UP) > 0.99, "Creature treated a human-layer collider as a climbable surface")
 	creature.position = Vector3(0, 0.45, 0)
 	creature.velocity = Vector3.ZERO
 	creature.motor.reset_orientation()
@@ -57,6 +69,12 @@ func run() -> void:
 	creature.motor.is_airborne = false
 	creature.motor.physics_step(Vector2.ZERO, false, false, 1.0 / 60.0, true)
 	assert(creature.motor.is_airborne and creature.motor.surface_up.dot(Vector3.UP) > 0.9, "Floor detach (C) did not release adhesion or align upward")
+	assert(creature.motor.floor_detach_active, "Floor detach did not enter the unconditional fall-to-floor mode")
+	assert(creature.velocity.dot(wall_normal) > 0.5 and creature.velocity.y < 0.0, "Floor detach did not push away from the wall and downward")
+	for detach_step in 8:
+		creature.motor.physics_step(Vector2.ZERO, false, false, 1.0 / 60.0)
+		await physics_frame
+	assert(creature.motor.is_airborne and not creature.motor.attached, "Floor detach reattached to the wall instead of continuing toward world floor")
 
 	# Test Ceiling Adherence
 	_add_box(root, Vector3(0, 5, 0), Vector3(8, 0.5, 8))
@@ -304,13 +322,39 @@ func run() -> void:
 	await process_frame
 	quit(0)
 
-func _add_box(parent: Node3D, position: Vector3, size: Vector3) -> void:
+func _add_box(parent: Node3D, position: Vector3, size: Vector3, layer := 1) -> void:
 	var body := StaticBody3D.new()
 	body.position = position
-	body.collision_layer = 1
+	body.collision_layer = layer
 	var collision := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
 	shape.size = size
 	collision.shape = shape
 	body.add_child(collision)
 	parent.add_child(body)
+
+func _test_no_climb_material_policy(parent: Node3D, policy: SurfaceClimbPolicy) -> void:
+	var body := StaticBody3D.new()
+	body.position = Vector3(100, 100, 100)
+	var collision := CollisionShape3D.new()
+	collision.name = "entity_0_brush_0_collision_shape"
+	collision.shape = BoxShape3D.new()
+	body.add_child(collision)
+	parent.add_child(body)
+	body.set_meta(&"func_godot_mesh_data", {
+		"texture_names": [&"special/no_climb"],
+		"textures": PackedInt32Array([0]),
+		"normals": PackedVector3Array([Vector3.UP]),
+		"positions": PackedVector3Array([Vector3.ZERO]),
+		"collision_shape_to_face_indices_map": {String(collision.name): PackedInt32Array([0])},
+	})
+	var shape_index := body.shape_owner_get_shape_index(body.shape_find_owner(0), 0)
+	assert(not policy.is_contact_climbable(body, shape_index, body.global_position, Vector3.UP, 1), "No-climb material face remained adhesive")
+	body.set_meta(&"func_godot_mesh_data", {
+		"texture_names": [&"Industrial/PIPES"],
+		"textures": PackedInt32Array([0]),
+		"normals": PackedVector3Array([Vector3.UP]),
+		"positions": PackedVector3Array([Vector3.ZERO]),
+		"collision_shape_to_face_indices_map": {String(collision.name): PackedInt32Array([0])},
+	})
+	assert(policy.is_contact_climbable(body, shape_index, body.global_position, Vector3.UP, 1), "Ordinary material face became non-climbable")

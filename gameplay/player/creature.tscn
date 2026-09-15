@@ -16,6 +16,7 @@
 [ext_resource type="Script" path="res://gameplay/player/components/surface_contact_resolver.gd" id="14"]
 [ext_resource type="Script" path="res://ui/surface_sensor_debug_panel.gd" id="15"]
 [ext_resource type="Script" path="res://gameplay/player/components/surface_frame_resolver.gd" id="16"]
+[ext_resource type="Script" path="res://gameplay/player/components/surface_climb_policy.gd" id="17"]
 
 [sub_resource type="SphereShape3D" id="CreatureShape"]
 radius = 0.35
@@ -100,14 +101,18 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.45, -1.1)
 [node name="AdhesionProbe" type="RayCast3D" parent="." unique_id=2061955812]
 target_position = Vector3(0, -0.9, 0)
 
-[node name="SurfaceContactResolver" type="Node" parent="." node_paths=PackedStringArray("body")]
+[node name="SurfaceClimbPolicy" type="Node" parent="."]
+script = ExtResource("17")
+
+[node name="SurfaceContactResolver" type="Node" parent="." node_paths=PackedStringArray("body", "climb_policy")]
 script = ExtResource("14")
 body = NodePath("..")
+climb_policy = NodePath("../SurfaceClimbPolicy")
 
 [node name="SurfaceFrameResolver" type="Node" parent="."]
 script = ExtResource("16")
 
-[node name="SurfaceMotor" type="Node" parent="." unique_id=874027800 node_paths=PackedStringArray("body", "camera_pivot", "adhesion_probe", "collision_shape", "contact_resolver", "frame_resolver")]
+[node name="SurfaceMotor" type="Node" parent="." unique_id=874027800 node_paths=PackedStringArray("body", "camera_pivot", "adhesion_probe", "collision_shape", "contact_resolver", "frame_resolver", "climb_policy")]
 script = ExtResource("2")
 body = NodePath("..")
 camera_pivot = NodePath("../CameraPivot")
@@ -115,6 +120,7 @@ adhesion_probe = NodePath("../AdhesionProbe")
 collision_shape = NodePath("../CollisionShape3D")
 contact_resolver = NodePath("../SurfaceContactResolver")
 frame_resolver = NodePath("../SurfaceFrameResolver")
+climb_policy = NodePath("../SurfaceClimbPolicy")
 
 [node name="CreatureAbilities" type="Node" parent="." unique_id=1227122409 node_paths=PackedStringArray("camera", "bite_visual")]
 script = ExtResource("3")

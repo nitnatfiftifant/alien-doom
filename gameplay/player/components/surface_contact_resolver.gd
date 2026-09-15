@@ -2,6 +2,7 @@ class_name SurfaceContactResolver
 extends Node
 
 @export var body: CharacterBody3D
+@export var climb_policy: SurfaceClimbPolicy
 @export_flags_3d_physics var collision_mask := 1
 @export_group("Virtual legs")
 @export_range(4, 12, 1) var radial_leg_count := 8
@@ -59,6 +60,8 @@ func _probe(space: PhysicsDirectSpaceState3D, direction: Vector3, movement_forwa
 	var query := PhysicsRayQueryParameters3D.create(origin, target, collision_mask)
 	query.exclude = [body]
 	var hit := space.intersect_ray(query)
+	if not hit.is_empty() and climb_policy != null and not climb_policy.is_hit_climbable(hit, collision_mask):
+		hit.clear()
 	var sample := {
 		"name": "leg_%02d" % probe_samples.size(),
 		"category": "leg",

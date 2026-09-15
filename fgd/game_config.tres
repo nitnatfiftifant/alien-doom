@@ -8,6 +8,7 @@
 [ext_resource type="Resource" uid="uid://ca7377sfgj074" path="res://addons/func_godot/game_config/trenchbroom/tb_face_tag_skip.tres" id="6"]
 [ext_resource type="Resource" uid="uid://bkjxc54mmdhbo" path="res://addons/func_godot/game_config/trenchbroom/tb_face_tag_origin.tres" id="7"]
 [ext_resource type="Texture2D" uid="uid://decwujsyhj0qy" path="res://addons/func_godot/icon32.png" id="7_sx2oc"]
+[ext_resource type="Resource" path="res://fgd/trenchbroom/tb_face_tag_no_climb.tres" id="8"]
 
 [resource]
 script = ExtResource("1")
@@ -21,3 +22,4 @@ set_default_properties = true
 generate_model_point_class_models = false
 brush_tags = Array[Resource]([ExtResource("3"), ExtResource("4")])
 game_config_version = 3
+brushface_tags = Array[Resource]([ExtResource("5"), ExtResource("6"), ExtResource("7"), ExtResource("8")])

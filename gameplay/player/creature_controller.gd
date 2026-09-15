@@ -14,6 +14,8 @@ const MOVEMENT_PROPERTIES: Array[StringName] = [
 	&"air_orientation_speed",
 	&"stick_velocity",
 	&"probe_length",
+	&"floor_detach_surface_push",
+	&"floor_detach_downward_speed",
 ]
 
 @export_group("Look")
@@ -44,6 +46,10 @@ const MOVEMENT_PROPERTIES: Array[StringName] = [
 	set(value): stick_velocity = value; _sync_motor_prop(&"stick_velocity", value)
 @export var probe_length := 1.1:
 	set(value): probe_length = value; _sync_motor_prop(&"probe_length", value)
+@export var floor_detach_surface_push := 2.5:
+	set(value): floor_detach_surface_push = value; _sync_motor_prop(&"floor_detach_surface_push", value)
+@export var floor_detach_downward_speed := 2.5:
+	set(value): floor_detach_downward_speed = value; _sync_motor_prop(&"floor_detach_downward_speed", value)
 @export_group("Abilities")
 @export var corpse_drag_config: Resource
 
@@ -55,6 +61,7 @@ const MOVEMENT_PROPERTIES: Array[StringName] = [
 @onready var ragdoll_pusher: RagdollPusherComponent = $RagdollPusherComponent
 var sneak := false
 var initial_transform := Transform3D.IDENTITY
+var _interact_was_pressed := false
 
 func _func_godot_apply_properties(properties: Dictionary) -> void:
 	for prop in MOVEMENT_PROPERTIES:
@@ -89,16 +96,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		rotate_object_local(Vector3.UP, -event.relative.x * mouse_sensitivity)
 		camera_pivot.rotate_object_local(Vector3.RIGHT, -event.relative.y * mouse_sensitivity)
 		camera_pivot.rotation.x = clampf(camera_pivot.rotation.x, -1.45, 1.45)
-	if event.is_action_pressed(&"bite"):
-		abilities.bite(self)
-	if event.is_action_pressed(&"acid"):
-		abilities.spit_acid(self)
-	if event.is_action_pressed(&"interact"):
-		carry.begin_grab(self)
-	elif event.is_action_released(&"interact"):
-		carry.drop()
 
 func _physics_process(delta: float) -> void:
+	_process_action_input()
 	sneak = Input.is_action_pressed(&"sneak")
 	var input_vector := Input.get_vector(&"move_left", &"move_right", &"move_back", &"move_forward")
 	var jump_pressed := Input.is_action_just_pressed(&"jump")
@@ -110,6 +110,21 @@ func _physics_process(delta: float) -> void:
 	abilities.tick(delta)
 	if input_vector.length_squared() > 0.1:
 		_emit_noise(0.12 if sneak else 0.75)
+
+func _process_action_input() -> void:
+	# Gameplay actions are polled here instead of relying on _unhandled_input.
+	# HUD Control nodes are allowed to consume GUI events without disabling bite,
+	# acid or the hold-to-drag interaction.
+	if Input.is_action_just_pressed(&"bite"):
+		abilities.bite(self)
+	if Input.is_action_just_pressed(&"acid"):
+		abilities.spit_acid(self)
+	var interact_pressed := Input.is_action_pressed(&"interact")
+	if interact_pressed and not _interact_was_pressed:
+		carry.begin_grab(self)
+	elif not interact_pressed and _interact_was_pressed:
+		carry.drop()
+	_interact_was_pressed = interact_pressed
 
 func _emit_noise(loudness: float) -> void:
 	var noise := get_node_or_null("/root/NOISE") as NoiseBus

@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="FuncGodotFGDPointClass" format=3 uid="uid://cnplu5j4tt66t"]
 
 [ext_resource type="Script" uid="uid://cxsqwtsqd8w33" path="res://addons/func_godot/src/fgd/func_godot_fgd_point_class.gd" id="1"]
-[ext_resource type="PackedScene" path="res://gameplay/humans/human.tscn" id="2"]
+[ext_resource type="PackedScene" uid="uid://cwgx8ukuhvt17" path="res://gameplay/humans/human.tscn" id="2"]
 [ext_resource type="Script" uid="uid://d1nwwgcrner8b" path="res://addons/func_godot/src/fgd/func_godot_fgd_point_class_display_descriptor.gd" id="2_xvk0m"]
 [ext_resource type="Resource" uid="uid://46g41551lweq" path="res://fgd/base/targetname.tres" id="3"]
 
@@ -12,10 +12,10 @@ classname = "info_human_spawn"
 description = "Worker or guard spawn marker."
 base_classes = Array[Resource]([ExtResource("3")])
 class_properties = Dictionary[String, Variant]({
-"angles": Vector3(0, 0, 0),
 "ai_acceleration": 10.0,
 "ai_move_speed": 3.2,
 "ai_turn_speed": 8.0,
+"angles": Vector3(0, 0, 0),
 "direct_half_angle": 25.0,
 "direct_view_distance": 14.0,
 "flee_distance": 10.0,
@@ -32,10 +32,10 @@ class_properties = Dictionary[String, Variant]({
 "touch_distance": 1.2
 })
 class_property_descriptions = Dictionary[String, Variant]({
-"angles": "Facing rotation: pitch yaw roll. Use TrenchBroom Rotate Tool; the orange arrow on the model points forward.",
 "ai_acceleration": "Movement acceleration in metres per second squared.",
 "ai_move_speed": "Navigation movement speed in metres per second.",
 "ai_turn_speed": "Body turn interpolation speed.",
+"angles": "Facing rotation: pitch yaw roll. Use TrenchBroom Rotate Tool; the orange arrow on the model points forward.",
 "direct_half_angle": "Half-angle of the focused vision cone in degrees.",
 "direct_view_distance": "Focused vision range in metres.",
 "flee_distance": "Distance in metres a civilian tries to create from a threat.",

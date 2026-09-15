@@ -4,7 +4,7 @@ extends Resource
 @export_group("Acquisition")
 @export var reach := 3.2
 @export_flags_3d_physics var acquisition_mask := 9
-@export var aim_radius := 0.42
+@export_range(0.05, 2.0, 0.05, "or_greater") var aim_radius := 0.75
 @export_group("Hold distance")
 @export var break_distance := 4.5
 @export var minimum_hold_distance := 1.1
