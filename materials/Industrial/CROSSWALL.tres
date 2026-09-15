@@ -1,6 +1,6 @@
-[gd_resource type="StandardMaterial3D" format=3]
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://bgijdcj5vx2pp"]
 
-[ext_resource type="Texture2D" path="res://textures/Industrial/CROSSWALL.png" id="1_pyash"]
+[ext_resource type="Texture2D" uid="uid://srkfqdyhb0qx" path="res://textures/Industrial/CROSSWALL.png" id="1_pyash"]
 
 [resource]
 albedo_texture = ExtResource("1_pyash")

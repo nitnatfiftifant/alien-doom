@@ -1,6 +1,6 @@
-[gd_resource type="StandardMaterial3D" format=3]
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://bys8cgt1brqce"]
 
-[ext_resource type="Texture2D" path="res://textures/Elements/TALLGRASS.png" id="1_s4m44"]
+[ext_resource type="Texture2D" uid="uid://b7qp2gbyn0gvm" path="res://textures/Elements/TALLGRASS.png" id="1_s4m44"]
 
 [resource]
 albedo_texture = ExtResource("1_s4m44")

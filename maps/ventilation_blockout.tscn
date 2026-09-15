@@ -19,7 +19,7 @@
 [ext_resource type="Material" path="res://materials/Industrial/CROSSWALL.tres" id="14_5gah0"]
 [ext_resource type="Material" path="res://materials/Industrial/SUPPORT.tres" id="15_j0ka1"]
 [ext_resource type="Material" path="res://materials/Rocks/DIRT.tres" id="16_hg4sp"]
-[ext_resource type="PackedScene" path="res://gameplay/nest/nest.tscn" id="22_vg688"]
+[ext_resource type="PackedScene" uid="uid://dlilqpxkt703f" path="res://gameplay/nest/nest.tscn" id="22_vg688"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_41c5m"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)

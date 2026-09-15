@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="FuncGodotFGDPointClass" format=3 uid="uid://vy2bm1hfwrcn"]
 
 [ext_resource type="Script" uid="uid://cxsqwtsqd8w33" path="res://addons/func_godot/src/fgd/func_godot_fgd_point_class.gd" id="1"]
-[ext_resource type="PackedScene" path="res://gameplay/nest/nest.tscn" id="2"]
+[ext_resource type="PackedScene" uid="uid://dlilqpxkt703f" path="res://gameplay/nest/nest.tscn" id="2"]
 [ext_resource type="Script" uid="uid://d1nwwgcrner8b" path="res://addons/func_godot/src/fgd/func_godot_fgd_point_class_display_descriptor.gd" id="2_hxtjy"]
 [ext_resource type="Resource" uid="uid://46g41551lweq" path="res://fgd/base/targetname.tres" id="3"]
 
