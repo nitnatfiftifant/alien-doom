@@ -7,8 +7,9 @@
 [ext_resource type="Resource" uid="uid://46g41551lweq" path="res://fgd/base/targetname.tres" id="5"]
 [ext_resource type="Resource" uid="uid://ccmcutibvci7q" path="res://fgd/point/light.tres" id="6"]
 [ext_resource type="Resource" uid="uid://ccoutcr4n83wo" path="res://fgd/point/light_spot.tres" id="7"]
+[ext_resource type="Resource" path="res://fgd/point/info_patrol_point.tres" id="8"]
 
 [resource]
 script = ExtResource("1")
 fgd_name = "AlienDoomGameplayPoints"
-entity_definitions = Array[Resource]([ExtResource("5"), ExtResource("2"), ExtResource("3"), ExtResource("4"), ExtResource("6"), ExtResource("7")])
+entity_definitions = Array[Resource]([ExtResource("5"), ExtResource("2"), ExtResource("3"), ExtResource("4"), ExtResource("6"), ExtResource("7"), ExtResource("8")])

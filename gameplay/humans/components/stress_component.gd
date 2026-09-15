@@ -41,9 +41,13 @@ func tick(delta: float) -> void:
 	_update_state()
 	stress_changed.emit(value)
 
-func synchronize_upwards(other_value: float) -> void:
+func synchronize_upwards(other_value: float, stimulus_age := 0.0) -> void:
 	if other_value > value:
-		add_stress(other_value - value)
+		value = clampf(other_value, 0.0, 100.0)
+		# Relaying old alarm is not a fresh sighting: the group must eventually calm down.
+		time_since_stimulus = minf(time_since_stimulus, stimulus_age)
+		_update_state()
+		stress_changed.emit(value)
 
 func _update_state() -> void:
 	var next := State.CALM

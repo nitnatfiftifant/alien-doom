@@ -24,6 +24,7 @@ extends CharacterBody3D
 @onready var alarm: HumanAlarmComponent = $HumanAlarmComponent
 var _map_properties: Dictionary = {}
 var _has_unique_ai_config := false
+var civilian_crouching := false
 
 func _func_godot_apply_properties(properties: Dictionary) -> void:
 	_map_properties = properties.duplicate()
@@ -113,9 +114,9 @@ func _share_stress() -> void:
 		return
 	for human in get_tree().get_nodes_in_group("humans"):
 		if human != self and global_position.distance_to(human.global_position) <= ai_config.stress_share_radius:
-			if stress.value > human.stress.value and not human.awareness.creature_visible:
+			if not human.awareness.creature_visible and (stress.value > human.stress.value or awareness.creature_visible or human.awareness.last_stimulus_kind == HumanAwarenessMemory.StimulusKind.NONE):
 				human.awareness.remember_stimulus(awareness.last_known_position, awareness.last_stimulus_kind == HumanAwarenessMemory.StimulusKind.CORPSE)
-			human.stress.synchronize_upwards(stress.value)
+			human.stress.synchronize_upwards(stress.value, stress.time_since_stimulus)
 
 func _on_noise_stimulus(position: Vector3, strength: float, source: Node) -> void:
 	# A frightened civilian must keep fleeing the monster, not the guard firing at it.
@@ -182,6 +183,7 @@ func slow_down() -> void:
 
 func _on_stress_state_changed(_previous: StressComponent.State, current: StressComponent.State) -> void:
 	state_machine.transition_to(current)
+	alarm.refresh_indicator(current)
 
 func _try_open_door(direction: Vector3) -> void:
 	if direction.is_zero_approx(): return

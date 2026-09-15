@@ -72,6 +72,8 @@ func run() -> void:
 		creature.position.x += 4.0 / 60.0
 		await physics_frame
 	assert(creature.health.current_health < before, "Fast bullet still misses ordinary close-range strafing")
+	var damage_taken := before - creature.health.current_health
+	assert(damage_taken >= creature.health.maximum_health * 0.5 and damage_taken <= creature.health.maximum_health * 0.6, "Random bullet damage outside 50–60%")
 	before = creature.health.current_health
 
 	# Thin cover inserted after launch catches even a fast-moving projectile.
@@ -106,6 +108,20 @@ func run() -> void:
 		guard.aiming.tick(1.0 / 60.0)
 		await physics_frame
 	assert(guard.awareness.last_known_position == remembered, "Aim revealed a hidden target's new position")
+	# Two actual impacts must kill even with a different maximum HP value.
+	creature.health.configure(200.0)
+	var deaths := {"count": 0}
+	creature.health.died.connect(func(_source): deaths.count += 1)
+	var rolled_damage: Array[float] = []
+	creature.health.damaged.connect(func(amount, _source): rolled_damage.append(amount))
+	for shot in 2:
+		await _settle_aim(Vector3(0, 1.5, -6))
+		guard.combat.tick(creature, 1.0)
+		for frame in 8: await physics_frame
+		assert(deaths.count == shot, "Player must survive the first hit and die on the second")
+	assert(rolled_damage.size() == 2)
+	for amount in rolled_damage:
+		assert(amount >= 100.0 and amount <= 120.0, "Damage did not scale with maximum HP")
 	guard.health.apply_damage(1000.0, creature)
 	assert(not guard.aiming.modifier.active, "Procedural aim still fights the ragdoll after death")
 	guard.combat.tick(creature, 1.0)

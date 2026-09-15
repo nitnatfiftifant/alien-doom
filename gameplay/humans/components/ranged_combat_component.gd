@@ -6,7 +6,8 @@ signal shot_fired
 @export var actor: HumanController
 @export var weapon: HumanWeaponComponent
 @export var projectile_scene: PackedScene
-@export var damage := 12.0
+@export_range(0.0, 1.0, 0.01) var minimum_damage_fraction := 0.50
+@export_range(0.0, 1.0, 0.01) var maximum_damage_fraction := 0.60
 @export var range := 18.0
 @export var shot_interval := 0.65
 @export var projectile_speed := 180.0
@@ -42,6 +43,7 @@ func tick(target: CreatureController, delta: float) -> void:
 	cooldown = shot_interval
 	var projectile := projectile_scene.instantiate() as HumanBulletProjectile
 	actor.get_parent().add_child(projectile)
-	projectile.launch(from, direction, actor, damage, range, projectile_speed)
+	var hit_damage := target.health.maximum_health * randf_range(minimum_damage_fraction, maximum_damage_fraction)
+	projectile.launch(from, direction, actor, hit_damage, range, projectile_speed)
 	shot_fired.emit()
 	(get_node("/root/NOISE") as NoiseBus).emit_noise(from, 1.0, actor)

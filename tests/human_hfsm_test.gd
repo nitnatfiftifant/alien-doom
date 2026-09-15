@@ -36,7 +36,8 @@ func run() -> void:
 		await physics_frame
 		if creature.health.current_health < health_before:
 			break
-	assert(creature.health.current_health == health_before - guard.combat.damage, "Travelling bullet did not apply exactly one hit")
+	var damage_taken := health_before - creature.health.current_health
+	assert(damage_taken >= creature.health.maximum_health * 0.5 and damage_taken <= creature.health.maximum_health * 0.6, "Bullet damage must be 50–60% of maximum health")
 
 	var worker := _spawn_human(root, "Worker", Vector3(4.0, 0.0, 0.0))
 	worker.set_physics_process(false)

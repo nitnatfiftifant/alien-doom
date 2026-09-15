@@ -13,6 +13,7 @@ var animation_player: AnimationPlayer
 var current_animation := &""
 var death_started := false
 var action_lock := 0.0
+var fear_modifier: SkeletonModifier3D
 
 func _ready() -> void:
 	_configure_mesh_culling()
@@ -24,6 +25,14 @@ func _ready() -> void:
 	_set_loop(&"Walk", true)
 	_set_loop(&"Jog_Fwd", true)
 	_set_loop(&"Sprint", true)
+	_set_loop(&"Crouch_Idle", true)
+	_set_loop(&"Crouch_Fwd", true)
+	var skeleton := visual_root.find_child("Skeleton3D", true, false) as Skeleton3D
+	if skeleton != null:
+		fear_modifier = preload("res://gameplay/humans/components/human_fear_modifier.gd").new()
+		fear_modifier.name = "HumanFearModifier"
+		fear_modifier.actor = actor
+		skeleton.add_child(fear_modifier)
 	if combat != null:
 		combat.shot_fired.connect(_on_shot_fired)
 	_play(&"Idle")
@@ -46,6 +55,9 @@ func _process(delta: float) -> void:
 	if action_lock > 0.0:
 		return
 	var horizontal_speed := Vector2(actor.velocity.x, actor.velocity.z).length()
+	if actor.role == "Worker" and actor.civilian_crouching:
+		_play(&"Crouch_Fwd" if horizontal_speed > movement_threshold else &"Crouch_Idle", horizontal_speed > movement_threshold)
+		return
 	if horizontal_speed <= movement_threshold:
 		_play(&"Pistol_Idle" if actor.role == "Guard" else &"Idle")
 	elif actor.stress.state == StressComponent.State.ALERT:
@@ -60,11 +72,11 @@ func _on_shot_fired() -> void:
 	current_animation = &""
 	_play(&"Pistol_Shoot")
 
-func _play(animation_name: StringName) -> void:
+func _play(animation_name: StringName, backwards := false) -> void:
 	if current_animation == animation_name or not animation_player.has_animation(animation_name):
 		return
 	current_animation = animation_name
-	animation_player.play(animation_name, 0.15)
+	animation_player.play(animation_name, 0.15, -1.0 if backwards else 1.0, backwards)
 
 func _set_loop(animation_name: StringName, enabled: bool) -> void:
 	if not animation_player.has_animation(animation_name):

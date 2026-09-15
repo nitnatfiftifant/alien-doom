@@ -2,7 +2,7 @@ class_name HumanBulletProjectile
 extends Node3D
 
 @export var speed := 180.0
-@export var damage := 12.0
+@export var damage := 55.0
 @export var maximum_distance := 18.0
 @export var maximum_lifetime := 3.0
 @export_flags_3d_physics var collision_mask := 15

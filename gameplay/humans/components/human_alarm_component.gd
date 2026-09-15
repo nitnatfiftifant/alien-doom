@@ -18,7 +18,7 @@ func _ready() -> void:
 	voice.stream = warning_sound
 
 func tick(delta: float) -> void:
-	if actor.is_guard() or actor.is_in_group("corpses"):
+	if actor.is_in_group("corpses"):
 		stop()
 		return
 	alarm_cooldown = maxf(0.0, alarm_cooldown - delta)
@@ -33,9 +33,18 @@ func tick(delta: float) -> void:
 			alarm_cooldown = repeat_interval
 			(get_node("/root/NOISE") as NoiseBus).emit_alarm(actor.perception.global_position, alarm_loudness, actor, actor.awareness.last_known_position)
 			voice.play()
-	indicator.text = "!" if confirmed_sighting else "?"
-	indicator.modulate = Color(1.0, 0.15, 0.07) if confirmed_sighting else Color(1.0, 0.85, 0.12)
-	indicator.visible = true
+	refresh_indicator(actor.stress.state)
+
+func refresh_indicator(state: StressComponent.State) -> void:
+	# Display what the NPC knows, including alarm received from another human.
+	# Personal visual contact is only relevant to emitting a new audible warning.
+	indicator.visible = state != StressComponent.State.CALM and not actor.is_in_group("corpses")
+	indicator.text = "?" if state == StressComponent.State.CAUTIOUS else "!"
+	indicator.modulate = Color(1.0, 0.85, 0.12)
+	if state == StressComponent.State.POST_ALERT:
+		indicator.modulate = Color(1.0, 0.4, 0.05)
+	elif state == StressComponent.State.ALERT:
+		indicator.modulate = Color(1.0, 0.15, 0.07)
 
 func stop() -> void:
 	indicator.visible = false
@@ -44,7 +53,7 @@ func stop() -> void:
 	alarm_cooldown = 0.0
 
 func _make_warning_sound() -> AudioStreamWAV:
-	# A short two-tone warning; generated once and shared by all civilians.
+	# A short two-tone warning; generated once and shared by all humans.
 	var sample_rate := 22050
 	var count := int(sample_rate * 0.36)
 	var samples := PackedByteArray()

@@ -969,6 +969,26 @@
 "patrol_id" "patrol_a"
 "_tb_layer" "1"
 }
+// Guard patrol A: inside the south edge of RoomTest.
+{
+"classname" "info_patrol_point"
+"targetname" "guard_01_patrol_a"
+"patrol_id" "patrol_a"
+"point_index" "0"
+"wait_seconds" "0.8"
+"origin" "96 -176 0"
+"_tb_layer" "1"
+}
+// Guard patrol B: inside the opposite edge of RoomTest.
+{
+"classname" "info_patrol_point"
+"targetname" "guard_01_patrol_b"
+"patrol_id" "patrol_a"
+"point_index" "1"
+"wait_seconds" "0.8"
+"origin" "96 176 0"
+"_tb_layer" "1"
+}
 // entity 8
 {
 "classname" "info_human_spawn"

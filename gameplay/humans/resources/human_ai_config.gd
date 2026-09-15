@@ -19,7 +19,8 @@ extends Resource
 @export_group("Flee")
 @export_range(1.0, 30.0, 0.5, "or_greater") var flee_distance := 10.0
 @export_range(0.1, 5.0, 0.1, "or_greater") var flee_repath_seconds := 0.5
+@export_range(0.5, 8.0, 0.1) var backpedal_distance := 2.5
+@export_range(0.2, 4.0, 0.1) var backpedal_speed := 1.4
 
 @export_group("Awareness")
 @export_range(0.1, 30.0, 0.1, "or_greater") var stress_share_radius := 8.0
-

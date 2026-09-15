@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="FuncGodotFGDPointClass" format=3]
+
+[ext_resource type="Script" path="res://addons/func_godot/src/fgd/func_godot_fgd_point_class.gd" id="1"]
+[ext_resource type="PackedScene" path="res://entities/markers/patrol_point.tscn" id="2"]
+[ext_resource type="Resource" path="res://fgd/base/targetname.tres" id="3"]
+
+[resource]
+script = ExtResource("1")
+scene_file = ExtResource("2")
+classname = "info_patrol_point"
+description = "Guard patrol destination. Place at floor height; match the guard patrol_id."
+base_classes = Array[Resource]([ExtResource("3")])
+class_properties = Dictionary[String, Variant]({
+"patrol_id": "patrol_a",
+"point_index": 0,
+"wait_seconds": 0.8
+})
+class_property_descriptions = Dictionary[String, Variant]({
+"patrol_id": "Route identifier matching info_human_spawn.patrol_id.",
+"point_index": "Visit order: 0 is A, 1 is B. The route loops.",
+"wait_seconds": "Seconds to pause at this point before walking to the next."
+})
+meta_properties = Dictionary[String, Variant]({
+"color": Color(0.1, 0.8, 1, 1),
+"size": AABB(-8, -8, 0, 16, 16, 16)
+})

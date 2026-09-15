@@ -28,6 +28,8 @@ $scripts = @(
     'res://tests/human_perception_wiring_test.gd',
     'res://tests/human_aim_projectile_test.gd',
     'res://tests/human_flee_alarm_test.gd',
+    'res://tests/human_corner_retreat_test.gd',
+    'res://tests/human_shared_alarm_patrol_test.gd',
     'res://tests/surface_and_perception_test.gd',
     'res://tests/acid_and_ragdoll_test.gd'
 )
