@@ -1,0 +1,8 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://textures/Urban/WINDOW_Visible.png" id="1_1n0nk"]
+
+[resource]
+albedo_texture = ExtResource("1_1n0nk")
+metallic_specular = 0.0
+texture_filter = 2
